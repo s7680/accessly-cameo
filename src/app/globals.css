@@ -1528,18 +1528,14 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   flex-shrink: 0;
 }
 @media (max-width: 640px) {
+  /* layout fixes */
   .card-grid--3,
-  .card-grid--4 {
-    grid-template-columns: 1fr;
-  }
-
+  .card-grid--4,
   .hero__creators {
     grid-template-columns: 1fr;
   }
-}
 
-/* 2. Stack CTA buttons vertically */
-@media (max-width: 640px) {
+  /* CTA */
   .hero__cta {
     flex-direction: column;
     width: 100%;
@@ -1548,10 +1544,8 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   .hero__cta .btn {
     width: 100%;
   }
-}
 
-/* 3. Reduce hero text size and spacing */
-@media (max-width: 640px) {
+  /* hero */
   .hero {
     padding-block: 3.5rem 3rem;
   }
@@ -1565,29 +1559,20 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
     font-size: 0.95rem;
     padding: 0 0.5rem;
   }
-}
 
-/* 4. Fix container padding for mobile */
-@media (max-width: 640px) {
+  /* container */
   .container {
     padding-inline: 1rem;
   }
-}
 
-/* 5. Prevent horizontal overflow issues */
-@media (max-width: 640px) {
-  body {
-    overflow-x: hidden;
-  }
-
+  /* overflow fix */
+  body,
   .hero,
   .section-block {
     overflow-x: hidden;
   }
-}
 
-/* 6. Improve card spacing */
-@media (max-width: 640px) {
+  /* cards */
   .creator-card,
   .drop-card,
   .experience-card {
