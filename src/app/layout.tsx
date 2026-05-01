@@ -6,9 +6,8 @@ import { routes } from "@/lib/routes";
 import NotificationBell from "@/components/NotificationBell";
 
 export const metadata: Metadata = {
-  title: "Accessly — Creator Connections, Drops & Experiences",
-  description:
-    "Request personalised video messages from your favourite creators, bid on exclusive Drops, and secure rare Experiences — all in one place.",
+  title: "Accessly - Creator Connections, Drops & Experiences",
+  description: "Request personalised video messages from your favourite creators, bid on exclusive drops, and secure rare experiences in one place.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
