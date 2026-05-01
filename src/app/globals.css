@@ -555,7 +555,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 
 .drop-card__image-wrap {
   position: relative;
-  height: 200px;
+  height: 250px;
   overflow: hidden;
 }
 
@@ -740,7 +740,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 
 .experience-card__image-wrap {
   position: relative;
-  height: 190px;
+  height: 250px;
   overflow: hidden;
 }
 
