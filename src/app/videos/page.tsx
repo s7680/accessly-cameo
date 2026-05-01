@@ -124,7 +124,7 @@ export default function VideosPage() {
               className="vp-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 220px))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
                 justifyContent: "start",
                 gap: "12px",
               }}
