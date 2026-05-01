@@ -65,8 +65,9 @@ export default function VideosPage() {
             >
               <div className="vp-category-avatar">
                 <img
-                  src={`https://picsum.photos/seed/${cat}/100`}
+                  src={`https://picsum.photos/seed/${cat}/300`}
                   alt={cat}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
                 />
               </div>
               <span className="vp-category-label">{cat}</span>

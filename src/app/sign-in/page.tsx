@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Button from "@/components/ui/Button";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function SignInPage() {
   const [inputValue, setInputValue] = useState("");
@@ -23,8 +24,18 @@ export default function SignInPage() {
     setLoading(false);
   };
 
-  const handleGoogleContinue = () => {
-    console.log("Continue with Google");
+  const handleGoogleContinue = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}`,
+      },
+    });
+
+    if (error) {
+      console.error(error);
+      alert("Google sign-in failed");
+    }
   };
 
   const handleOtpChange = (value: string, index: number) => {

@@ -555,7 +555,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 
 .drop-card__image-wrap {
   position: relative;
-  height: 200px;
+  height: 300px;
   overflow: hidden;
 }
 
@@ -1610,12 +1610,15 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 /* ─── Drops grid responsive control ─────────────────────────────────────── */
 .drops-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
 
-@media (max-width: 900px) { .drops-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 600px) { .drops-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+  .drops-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* ─── Lot filter ─────────────────────────────────────────────────────────── */
 .lot-filter {
@@ -1660,18 +1663,10 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 /* ─── Experiences grid fix (prevent stretch) ───────────────────────────── */
 .experiences-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
 
-/* Tablet */
-@media (max-width: 900px) {
-  .experiences-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* Mobile */
 @media (max-width: 600px) {
   .experiences-grid {
     grid-template-columns: 1fr;
