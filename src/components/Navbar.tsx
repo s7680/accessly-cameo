@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
+import { routes } from "@/lib/routes";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -11,9 +12,9 @@ export default function Navbar() {
     <header className="site-header">
       <div className="container nav">
         {/* Logo */}
-        <div className="nav__logo">
+        <Link href={routes.home} className="nav__logo">
           Access<span>ly</span>
-        </div>
+        </Link>
 
         {/* Desktop Links */}
         <ul className="nav__links">
