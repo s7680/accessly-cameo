@@ -1527,6 +1527,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   accent-color: #7b61ff;
   flex-shrink: 0;
 }
+}
 @media (max-width: 640px) {
   /* layout fixes */
   .card-grid--3,
