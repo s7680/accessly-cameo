@@ -53,10 +53,18 @@ export default function ExperiencesPage() {
   const [filtersVisible, setFiltersVisible] = useState(true);
   const [sidebarSearch, setSidebarSearch]   = useState("");
   const [sort, setSort]                     = useState("upcoming");
+  const [lotType, setLotType] = useState<"all" | "auction" | "buyNow">("all");
 
-  const filtered = allExperiences.filter((e) =>
-    active === ALL_LABEL || e.category === active
-  );
+  const filtered = allExperiences.filter((e) => {
+    const matchCat = active === ALL_LABEL || e.category === active;
+
+    const matchLot =
+      lotType === "all" ||
+      (lotType === "auction" && !e.price) ||
+      (lotType === "buyNow" && !!e.price);
+
+    return matchCat && matchLot;
+  });
 
   const sorted = [...filtered].sort((a, b) => {
     if (sort === "upcoming")       return new Date(a.availableOn).getTime() - new Date(b.availableOn).getTime();
@@ -112,6 +120,28 @@ export default function ExperiencesPage() {
           ))}
         </div>
 
+        <div style={{ marginBottom: "16px" }}>
+          <div className="lot-filter">
+            <button
+              className={lotType === "auction" ? "active" : ""}
+              onClick={() => setLotType("auction")}
+            >
+              Auction
+            </button>
+            <button
+              className={lotType === "buyNow" ? "active" : ""}
+              onClick={() => setLotType("buyNow")}
+            >
+              Buy Now
+            </button>
+            <button
+              className={lotType === "all" ? "active" : ""}
+              onClick={() => setLotType("all")}
+            >
+              All
+            </button>
+          </div>
+        </div>
         {/* Control bar */}
         <div className="vp-control-bar">
           <div className="vp-control-bar__left">

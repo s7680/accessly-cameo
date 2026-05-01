@@ -54,12 +54,19 @@ export default function DropsPage() {
   const [filtersVisible, setFiltersVisible] = useState(true);
   const [sidebarSearch, setSidebarSearch]   = useState("");
   const [sort, setSort]                     = useState("ending_soon");
+  const [lotType, setLotType] = useState<"all" | "auction" | "buyNow">("all");
   const router = useRouter();
 
   const filtered = allDrops.filter((d) => {
     const matchCat    = active === ALL_LABEL || d.category === active;
-    const matchUrgent = !showUrgent || d.endsInSeconds <= 21600; // ≤ 6 h
-    return matchCat && matchUrgent;
+    const matchUrgent = !showUrgent || d.endsInSeconds <= 21600;
+
+    const matchLot =
+      lotType === "all" ||
+      (lotType === "auction" && !d.buyNowPrice) ||
+      (lotType === "buyNow" && !!d.buyNowPrice);
+
+    return matchCat && matchUrgent && matchLot;
   });
 
   const sorted = [...filtered].sort((a, b) => {
@@ -113,6 +120,30 @@ export default function DropsPage() {
               <span className="vp-category-label">{cat}</span>
             </button>
           ))}
+        </div>
+
+        <div style={{ marginBottom: "16px" }}>
+          {/* Lot Type Filter */}
+          <div className="lot-filter">
+            <button
+              className={lotType === "auction" ? "active" : ""}
+              onClick={() => setLotType("auction")}
+            >
+              Auction
+            </button>
+            <button
+              className={lotType === "buyNow" ? "active" : ""}
+              onClick={() => setLotType("buyNow")}
+            >
+              Buy Now
+            </button>
+            <button
+              className={lotType === "all" ? "active" : ""}
+              onClick={() => setLotType("all")}
+            >
+              All
+            </button>
+          </div>
         </div>
 
         {/* Control bar */}
