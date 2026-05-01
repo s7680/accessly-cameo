@@ -154,28 +154,30 @@ export default function DropsPage() {
 
           {/* Grid */}
           <div className="vp-main w-full">
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                gap: "16px",
-              }}
-            >
-              {sorted.map((drop) => (
-                <DropCard
-                  key={drop.id}
-                  drop={{
-                    ...drop,
-                    buyNowPrice: drop.buyNowPrice ?? null,
-                    creatorName: drop.creator,
-                    creatorAvatar: "",
-                    totalBids: drop.bidCount,
-                    endsIn: new Date(Date.now() + drop.endsInSeconds * 1000).toISOString(),
-                    description: "",
-                    edition: "1 of 1",
-                  }}
-                />
-              ))}
+            <div className="drops-grid">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "16px",
+                }}
+              >
+                {sorted.map((drop) => (
+                  <DropCard
+                    key={drop.id}
+                    drop={{
+                      ...drop,
+                      buyNowPrice: drop.buyNowPrice ?? null,
+                      creatorName: drop.creator,
+                      creatorAvatar: "",
+                      totalBids: drop.bidCount,
+                      endsIn: new Date(Date.now() + drop.endsInSeconds * 1000).toISOString(),
+                      description: "",
+                      edition: "1 of 1",
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -250,3 +252,15 @@ export default function DropsPage() {
     </div>
   );
 }
+
+// NOTE: To make the grid responsive, add CSS for `.drops-grid` in your CSS file, e.g.:
+// @media (max-width: 900px) {
+//   .drops-grid > div {
+//     grid-template-columns: 1fr 1fr !important;
+//   }
+// }
+// @media (max-width: 600px) {
+//   .drops-grid > div {
+//     grid-template-columns: 1fr !important;
+//   }
+// }

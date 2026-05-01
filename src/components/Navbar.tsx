@@ -12,7 +12,7 @@ export default function Navbar() {
     <header className="site-header">
       <div className="container nav">
         {/* Logo */}
-        <Link href={routes.home} className="nav__logo">
+        <Link href={routes.home || "/"} className="nav__logo">
           Access<span>ly</span>
         </Link>
 

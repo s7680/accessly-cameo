@@ -1594,3 +1594,21 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
     padding: 1.2rem;
   }
 }
+/* Drops grid responsive control */
+.drops-grid > div {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Tablet */
+@media (max-width: 900px) {
+  .drops-grid > div {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .drops-grid > div {
+    grid-template-columns: 1fr !important;
+  }
+}
