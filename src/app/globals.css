@@ -1595,20 +1595,20 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   }
 }
 /* Drops grid responsive control */
-.drops-grid > div {
+.drops-grid {
+  display: grid;
   grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
-/* Tablet */
 @media (max-width: 900px) {
-  .drops-grid > div {
-    grid-template-columns: repeat(2, 1fr) !important;
+  .drops-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* Mobile */
 @media (max-width: 600px) {
-  .drops-grid > div {
-    grid-template-columns: 1fr !important;
+  .drops-grid {
+    grid-template-columns: 1fr;
   }
 }

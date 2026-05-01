@@ -155,29 +155,21 @@ export default function DropsPage() {
           {/* Grid */}
           <div className="vp-main w-full">
             <div className="drops-grid">
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: "16px",
-                }}
-              >
-                {sorted.map((drop) => (
-                  <DropCard
-                    key={drop.id}
-                    drop={{
-                      ...drop,
-                      buyNowPrice: drop.buyNowPrice ?? null,
-                      creatorName: drop.creator,
-                      creatorAvatar: "",
-                      totalBids: drop.bidCount,
-                      endsIn: new Date(Date.now() + drop.endsInSeconds * 1000).toISOString(),
-                      description: "",
-                      edition: "1 of 1",
-                    }}
-                  />
-                ))}
-              </div>
+              {sorted.map((drop) => (
+                <DropCard
+                  key={drop.id}
+                  drop={{
+                    ...drop,
+                    buyNowPrice: drop.buyNowPrice ?? null,
+                    creatorName: drop.creator,
+                    creatorAvatar: "",
+                    totalBids: drop.bidCount,
+                    endsIn: new Date(Date.now() + drop.endsInSeconds * 1000).toISOString(),
+                    description: "",
+                    edition: "1 of 1",
+                  }}
+                />
+              ))}
             </div>
           </div>
 
