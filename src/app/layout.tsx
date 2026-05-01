@@ -1,7 +1,9 @@
+"use client";
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { routes } from "@/lib/routes";
+import { useState } from "react";
 
 import NotificationBell from "@/components/NotificationBell";
 
@@ -12,6 +14,8 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <html lang="en">
       <body>
@@ -20,12 +24,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="nav__logo">
               Access<span>ly</span>
             </Link>
-            <ul className="nav__links">
-              <li><Link href={routes.videos}>Videos</Link></li>
-              <li><Link href={routes.drops}>Drops</Link></li>
-              <li><Link href={routes.experiences}>Experiences</Link></li>
-              <li><Link href="/join-talent">Join as Talent</Link></li>
-              <li><Link href={routes.howItWorks}>How It Works</Link></li>
+            <button
+              className="nav__menu-btn"
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{ fontSize: "20px", display: "block" }}
+            >
+              ☰
+            </button>
+            <ul
+              className="nav__links"
+              style={{ display: menuOpen ? "flex" : undefined, flexDirection: "column" }}
+            >
+              <li><Link href={routes.videos} onClick={() => setMenuOpen(false)}>Videos</Link></li>
+              <li><Link href={routes.drops} onClick={() => setMenuOpen(false)}>Drops</Link></li>
+              <li><Link href={routes.experiences} onClick={() => setMenuOpen(false)}>Experiences</Link></li>
+              <li><Link href="/join-talent" onClick={() => setMenuOpen(false)}>Join as Talent</Link></li>
+              <li><Link href={routes.howItWorks} onClick={() => setMenuOpen(false)}>How It Works</Link></li>
             </ul>
             <div className="nav__actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <NotificationBell />
