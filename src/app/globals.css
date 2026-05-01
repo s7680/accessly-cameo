@@ -1527,13 +1527,15 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   accent-color: #7b61ff;
   flex-shrink: 0;
 }
-.card-grid--3,
-.card-grid--4 {
-  grid-template-columns: 1fr;
-}
+@media (max-width: 640px) {
+  .card-grid--3,
+  .card-grid--4 {
+    grid-template-columns: 1fr;
+  }
 
-.hero__creators {
-  grid-template-columns: 1fr;
+  .hero__creators {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* 2. Stack CTA buttons vertically */
