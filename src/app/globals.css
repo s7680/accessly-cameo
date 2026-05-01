@@ -1535,7 +1535,6 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 .hero__creators {
   grid-template-columns: 1fr;
 }
-}
 
 /* 2. Stack CTA buttons vertically */
 @media (max-width: 640px) {
