@@ -99,7 +99,6 @@ export default function DropsPage() {
         {/* Category scroll — identical markup, drop-specific seeds */}
         <div
           className="vp-category-scroll"
-          style={{ gap: "50px", marginBottom: "50px" }}
           role="group"
           aria-label="Filter by category"
         >
@@ -110,11 +109,10 @@ export default function DropsPage() {
               onClick={() => setActive(cat)}
               aria-pressed={active === cat}
             >
-              <div className="vp-category-avatar" style={{ width: "90px", height: "90px" }}>
+              <div className="vp-category-avatar">
                 <img
                   src={`https://picsum.photos/seed/${cat}/100`}
                   alt={cat}
-                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
                 />
               </div>
               <span className="vp-category-label">{cat}</span>
@@ -122,7 +120,7 @@ export default function DropsPage() {
           ))}
         </div>
 
-        <div style={{ marginBottom: "16px" }}>
+        <div>
           {/* Lot Type Filter */}
           <div className="lot-filter">
             <button
@@ -149,7 +147,7 @@ export default function DropsPage() {
         {/* Control bar */}
         <div className="vp-control-bar">
           <div className="vp-control-bar__left">
-            <span className="vp-result-count" style={{ marginRight: "16px" }}>
+            <span className="vp-result-count">
               {sorted.length.toLocaleString()} results
             </span>
             <select

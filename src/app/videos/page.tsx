@@ -53,7 +53,6 @@ export default function VideosPage() {
         {/* Category scroll */}
         <div
           className="vp-category-scroll"
-          style={{ gap: "50px", marginBottom: "50px" }}
           role="group"
           aria-label="Filter by category"
         >
@@ -64,16 +63,10 @@ export default function VideosPage() {
               onClick={() => setActive(cat)}
               aria-pressed={active === cat}
             >
-              <div className="vp-category-avatar" style={{ width: "90px", height: "90px" }}>
+              <div className="vp-category-avatar">
                 <img
                   src={`https://picsum.photos/seed/${cat}/100`}
                   alt={cat}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    borderRadius: "50%"
-                  }}
                 />
               </div>
               <span className="vp-category-label">{cat}</span>
@@ -84,7 +77,7 @@ export default function VideosPage() {
         {/* Control bar */}
         <div className="vp-control-bar">
           <div className="vp-control-bar__left">
-            <span className="vp-result-count" style={{ marginRight: "16px" }}>
+            <span className="vp-result-count">
               {filtered.length.toLocaleString()} results
             </span>
             <select className="vp-dropdown" defaultValue="featured">
@@ -122,12 +115,6 @@ export default function VideosPage() {
           <div className="vp-main w-full">
             <div
               className="vp-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-                justifyContent: "start",
-                gap: "12px",
-              }}
             >
               {filtered.map((creator) => (
                 <CreatorCard

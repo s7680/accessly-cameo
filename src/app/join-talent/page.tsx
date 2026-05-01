@@ -220,8 +220,8 @@ export default function JoinTalentPage() {
       <style>{`
         /* ── Root & tokens ───────────────────────────────────────────── */
         .jt-root {
-          background: #0a0a0a;
-          color: #f0ede8;
+          background: var(--bg-base);
+          color: var(--text-primary);
           font-family: inherit;
           overflow-x: hidden;
         }
@@ -247,13 +247,13 @@ export default function JoinTalentPage() {
         }
         .jt-hero-glow--1 {
           width: 600px; height: 600px;
-          background: #d4a843;
+          background: var(--gold);
           top: -100px; left: 50%;
           transform: translateX(-60%);
         }
         .jt-hero-glow--2 {
           width: 400px; height: 400px;
-          background: #c0392b;
+          background: var(--accent);
           bottom: 0; right: -80px;
         }
 
@@ -268,19 +268,19 @@ export default function JoinTalentPage() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          background: rgba(212, 168, 67, 0.12);
-          border: 1px solid rgba(212, 168, 67, 0.3);
+          background: var(--gold-dim);
+          border: 1px solid var(--border-accent);
           border-radius: 100px;
           padding: 6px 16px;
           font-size: 13px;
-          color: #d4a843;
+          color: var(--text-gold);
           font-weight: 500;
           margin-bottom: 32px;
           letter-spacing: 0.02em;
         }
         .jt-badge-dot {
           width: 7px; height: 7px;
-          background: #d4a843;
+          background: var(--text-gold);
           border-radius: 50%;
           animation: jt-pulse 2s ease-in-out infinite;
         }
@@ -295,10 +295,10 @@ export default function JoinTalentPage() {
           line-height: 1.05;
           letter-spacing: -0.03em;
           margin: 0 0 24px;
-          color: #f0ede8;
+          color: var(--text-primary);
         }
         .jt-hero-accent {
-          background: linear-gradient(135deg, #d4a843 0%, #e8c060 50%, #c0392b 100%);
+          background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--accent) 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -306,7 +306,7 @@ export default function JoinTalentPage() {
 
         .jt-hero-sub {
           font-size: clamp(16px, 2.5vw, 20px);
-          color: #9a9085;
+          color: var(--text-secondary);
           line-height: 1.6;
           margin: 0 0 40px;
           max-width: 480px;
@@ -328,8 +328,8 @@ export default function JoinTalentPage() {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          background: #d4a843;
-          color: #0a0a0a;
+          background: var(--gold);
+          color: var(--bg-base);
           font-size: 16px;
           font-weight: 700;
           padding: 16px 32px;
@@ -337,13 +337,13 @@ export default function JoinTalentPage() {
           border: none;
           cursor: pointer;
           transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-          box-shadow: 0 0 0 0 rgba(212,168,67,0);
+          box-shadow: 0 0 0 0 var(--gold-dim);
           letter-spacing: 0.01em;
         }
         .jt-btn-primary:hover {
           transform: translateY(-2px);
-          background: #e8c060;
-          box-shadow: 0 8px 32px rgba(212, 168, 67, 0.35);
+          background: var(--gold-light);
+          box-shadow: var(--shadow-gold);
         }
         .jt-btn-primary:active { transform: translateY(0); }
         .jt-btn-primary--large {
@@ -358,7 +358,7 @@ export default function JoinTalentPage() {
 
         .jt-hero-trust {
           font-size: 13px;
-          color: #6b6560;
+          color: var(--text-muted);
           letter-spacing: 0.02em;
         }
 
@@ -380,12 +380,12 @@ export default function JoinTalentPage() {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: var(--bg-muted);
+          border: 1px solid var(--border);
           border-radius: 100px;
           padding: 8px 16px 8px 8px;
           font-size: 13px;
-          color: #c0bab3;
+          color: var(--text-secondary);
           backdrop-filter: blur(8px);
           animation: jt-floatUp 0.6s ease both;
         }
@@ -395,7 +395,7 @@ export default function JoinTalentPage() {
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        .jt-pill strong { color: #d4a843; }
+        .jt-pill strong { color: var(--text-gold); }
         .jt-pill-img {
           width: 28px; height: 28px;
           border-radius: 50%;
@@ -407,7 +407,7 @@ export default function JoinTalentPage() {
           padding: 80px 24px;
         }
         .jt-section--alt {
-          background: #0f0f0f;
+          background: var(--bg-subtle);
         }
         .jt-section-inner {
           max-width: 1100px;
@@ -418,7 +418,7 @@ export default function JoinTalentPage() {
           font-weight: 600;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #d4a843;
+          color: var(--text-gold);
           margin: 0 0 12px;
         }
         .jt-section-title {
@@ -427,7 +427,7 @@ export default function JoinTalentPage() {
           letter-spacing: -0.025em;
           line-height: 1.1;
           margin: 0 0 48px;
-          color: #f0ede8;
+          color: var(--text-primary);
         }
 
         /* ── Steps ───────────────────────────────────────────────────── */
@@ -445,14 +445,14 @@ export default function JoinTalentPage() {
 
         .jt-step-card {
           position: relative;
-          background: #141414;
-          border: 1px solid #1e1e1e;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
           border-radius: 16px;
           padding: 32px 28px;
           transition: border-color 0.2s ease, transform 0.2s ease;
         }
         .jt-step-card:hover {
-          border-color: rgba(212, 168, 67, 0.3);
+          border-color: var(--border-accent);
           transform: translateY(-3px);
         }
 
@@ -461,7 +461,7 @@ export default function JoinTalentPage() {
           font-size: 48px;
           font-weight: 900;
           line-height: 1;
-          color: rgba(212, 168, 67, 0.15);
+          color: var(--gold-dim);
           letter-spacing: -0.04em;
           margin-bottom: 20px;
         }
@@ -473,13 +473,13 @@ export default function JoinTalentPage() {
         .jt-step-title {
           font-size: 18px;
           font-weight: 700;
-          color: #f0ede8;
+          color: var(--text-primary);
           margin: 0 0 10px;
           letter-spacing: -0.01em;
         }
         .jt-step-desc {
           font-size: 14px;
-          color: #6b6560;
+          color: var(--text-muted);
           line-height: 1.6;
           margin: 0;
         }
@@ -497,14 +497,14 @@ export default function JoinTalentPage() {
         }
 
         .jt-benefit-card {
-          background: #141414;
-          border: 1px solid #1e1e1e;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
           border-radius: 16px;
           padding: 28px 24px;
           transition: border-color 0.2s ease;
         }
         .jt-benefit-card:hover {
-          border-color: rgba(212, 168, 67, 0.25);
+          border-color: var(--border-accent);
         }
 
         .jt-benefit-icon {
@@ -512,7 +512,7 @@ export default function JoinTalentPage() {
           align-items: center;
           justify-content: center;
           width: 44px; height: 44px;
-          background: rgba(212, 168, 67, 0.1);
+          background: var(--gold-dim);
           border-radius: 12px;
           font-size: 20px;
           margin-bottom: 16px;
@@ -521,13 +521,13 @@ export default function JoinTalentPage() {
         .jt-benefit-title {
           font-size: 16px;
           font-weight: 700;
-          color: #f0ede8;
+          color: var(--text-primary);
           margin: 0 0 8px;
           letter-spacing: -0.01em;
         }
         .jt-benefit-desc {
           font-size: 14px;
-          color: #6b6560;
+          color: var(--text-muted);
           line-height: 1.6;
           margin: 0;
         }
@@ -545,14 +545,14 @@ export default function JoinTalentPage() {
         }
 
         .jt-testimonial-card {
-          background: #141414;
-          border: 1px solid #1e1e1e;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
           border-radius: 16px;
           padding: 24px;
           transition: border-color 0.2s ease;
         }
         .jt-testimonial-card:hover {
-          border-color: rgba(212, 168, 67, 0.2);
+          border-color: var(--border-accent);
         }
 
         .jt-testimonial-top {
@@ -567,18 +567,18 @@ export default function JoinTalentPage() {
           border-radius: 50%;
           object-fit: cover;
           flex-shrink: 0;
-          border: 2px solid #1e1e1e;
+          border: 2px solid var(--border);
         }
 
         .jt-testimonial-name {
           font-size: 14px;
           font-weight: 700;
-          color: #f0ede8;
+          color: var(--text-primary);
           margin: 0 0 2px;
         }
         .jt-testimonial-role {
           font-size: 12px;
-          color: #6b6560;
+          color: var(--text-muted);
           margin: 0;
         }
 
@@ -586,18 +586,18 @@ export default function JoinTalentPage() {
           margin-left: auto;
           font-size: 15px;
           font-weight: 800;
-          color: #d4a843;
+          color: var(--text-gold);
           white-space: nowrap;
           flex-shrink: 0;
         }
 
         .jt-testimonial-quote {
           font-size: 14px;
-          color: #9a9085;
+          color: var(--text-secondary);
           line-height: 1.65;
           margin: 0;
           font-style: italic;
-          border-left: 2px solid rgba(212, 168, 67, 0.3);
+          border-left: 2px solid var(--border-accent);
           padding-left: 14px;
         }
 
@@ -607,14 +607,14 @@ export default function JoinTalentPage() {
           padding: 100px 24px;
           text-align: center;
           overflow: hidden;
-          background: #0f0f0f;
-          border-top: 1px solid #1e1e1e;
+          background: var(--bg-subtle);
+          border-top: 1px solid var(--border);
         }
 
         .jt-final-glow {
           position: absolute;
           width: 500px; height: 500px;
-          background: #d4a843;
+          background: var(--gold);
           border-radius: 50%;
           filter: blur(140px);
           opacity: 0.08;
@@ -635,13 +635,13 @@ export default function JoinTalentPage() {
           font-weight: 900;
           letter-spacing: -0.03em;
           line-height: 1.05;
-          color: #f0ede8;
+          color: var(--text-primary);
           margin: 0 0 20px;
         }
 
         .jt-final-sub {
           font-size: 16px;
-          color: #6b6560;
+          color: var(--text-muted);
           line-height: 1.6;
           margin: 0 0 40px;
           max-width: 440px;
@@ -652,7 +652,7 @@ export default function JoinTalentPage() {
         .jt-final-footnote {
           margin-top: 18px;
           font-size: 12px;
-          color: #3d3830;
+          color: var(--text-muted);
           letter-spacing: 0.04em;
         }
       `}</style>

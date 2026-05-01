@@ -97,7 +97,6 @@ export default function ExperiencesPage() {
         {/* Category scroll */}
         <div
           className="vp-category-scroll"
-          style={{ gap: "50px", marginBottom: "50px" }}
           role="group"
           aria-label="Filter by category"
         >
@@ -176,13 +175,7 @@ export default function ExperiencesPage() {
 
           {/* Grid */}
           <div className="vp-main w-full">
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                gap: 16,
-              }}
-            >
+            <div className="experiences-grid">
               {sorted.map((exp) => (
                 <ExperienceCard
                   key={exp.id}

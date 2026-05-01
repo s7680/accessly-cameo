@@ -73,7 +73,7 @@ export default function HomePage() {
       <SectionWrapper
         id="drops"
         eyebrow="Drops — Limited Edition Collectibles"
-        title={<>Own something <em style={{ fontStyle: "italic", color: "var(--gold)" }}>truly</em> rare.</>}
+        title={<>Own something <em>truly</em> rare.</>}
         subtitle="Auction-first collectibles and digital artefacts released in limited editions. Bid now — these won't return."
         titleAlign="left"
         action={<Button href="/drops" variant="secondary">Browse All Drops</Button>}
