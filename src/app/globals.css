@@ -169,8 +169,34 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   gap: 0.75rem;
 }
 
+
+.nav__menu-btn {
+  display: none;
+  font-size: 20px;
+  color: white;
+}
+
+.nav__mobile {
+  display: none;
+}
+
 @media (max-width: 768px) {
-  .nav__links { display: none; }
+  .nav__links {
+    display: none;
+  }
+
+  .nav__menu-btn {
+    display: block;
+  }
+
+  .nav__mobile {
+    display: flex;
+    flex-direction: column;
+    background: #0a0a0c;
+    padding: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    gap: 1rem;
+  }
 }
 
 /* ─── Footer ─────────────────────────────────────────────────────────────── */

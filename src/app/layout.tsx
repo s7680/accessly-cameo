@@ -4,6 +4,7 @@ import Link from "next/link";
 import { routes } from "@/lib/routes";
 
 import NotificationBell from "@/components/NotificationBell";
+import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "Accessly - Creator Connections, Drops & Experiences",
@@ -15,36 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <header className="site-header">
-          <nav className="nav container">
-            <Link href="/" className="nav__logo">
-              Access<span>ly</span>
-            </Link>
-            <ul className="nav__links">
-              <li><Link href={routes.videos}>Videos</Link></li>
-              <li><Link href={routes.drops}>Drops</Link></li>
-              <li><Link href={routes.experiences}>Experiences</Link></li>
-              <li><Link href="/join-talent">Join as Talent</Link></li>
-              <li><Link href={routes.howItWorks}>How It Works</Link></li>
-            </ul>
-            <div className="nav__actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <NotificationBell />
-              <Link
-                href="/watchlist"
-                style={{
-                  fontSize: "20px",
-                  color: "#ff4d8d",
-                  textDecoration: "none",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                ❤️
-              </Link>
-              <Link href={routes.signIn} className="btn btn--primary btn--sm">Sign In</Link>
-            </div>
-          </nav>
-        </header>
+        <Navbar />
 
         <main>{children}</main>
 
