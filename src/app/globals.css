@@ -282,14 +282,6 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 }
 
 /* Legacy simple button variants (for compatibility) */
-.btn {
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-}
-
 .btn-primary {
   background: white;
   color: black;
@@ -1136,6 +1128,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 .animate-delay-2 { animation-delay: 0.2s; opacity: 0; }
 .animate-delay-3 { animation-delay: 0.3s; opacity: 0; }
 .animate-delay-4 { animation-delay: 0.4s; opacity: 0; }
+
 /* =========================================================
    VideosPage — dark Cameo-style UI
    ========================================================= */
@@ -1527,17 +1520,15 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   accent-color: #7b61ff;
   flex-shrink: 0;
 }
-}
+
+/* ─── Mobile overrides (≤ 640px) ────────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* layout fixes */
   .card-grid--3,
   .card-grid--4,
   .hero__creators {
     grid-template-columns: 1fr;
   }
 
-  
-  /* CTA */
   .hero__cta {
     flex-direction: column;
     width: 100%;
@@ -1547,7 +1538,6 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
     width: 100%;
   }
 
-  /* hero */
   .hero {
     padding-block: 3.5rem 3rem;
   }
@@ -1562,19 +1552,16 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
     padding: 0 0.5rem;
   }
 
-  /* container */
   .container {
     padding-inline: 1rem;
   }
 
-  /* overflow fix */
   body,
   .hero,
   .section-block {
     overflow-x: hidden;
   }
 
-  /* cards */
   .creator-card,
   .drop-card,
   .experience-card {
