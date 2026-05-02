@@ -1,22 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useEffect } from "react";
 import CreatorCard from "@/components/CreatorCard";
-import { allCreators } from "@/lib/mockData";
+import { getCreatorCards } from "@/lib/db/videos";
 
 const ALL_LABEL = "All";
-const categories: string[] = [
-  ALL_LABEL,
-  ...Array.from(new Set(allCreators.map((c) => c.category).filter(Boolean))) as string[],
-];
 
-// Category counts helper
-const categoryCounts = categories.reduce((acc, cat) => {
-  acc[cat] = cat === ALL_LABEL
-    ? allCreators.length
-    : allCreators.filter((c) => c.category === cat).length;
-  return acc;
-}, {} as Record<string, number>);
 
 export default function VideosPage() {
   const [active, setActive] = useState(ALL_LABEL);
@@ -24,7 +14,34 @@ export default function VideosPage() {
   const [filtersVisible, setFiltersVisible] = useState(true);
   const [sidebarSearch, setSidebarSearch] = useState("");
 
-  const filtered = allCreators.filter((c) => {
+  const [creators, setCreators] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getCreatorCards();
+        setCreators(data);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+    load();
+  }, []);
+
+  const categories: string[] = [
+    ALL_LABEL,
+    ...Array.from(new Set(creators.map((c) => c.category).filter(Boolean))) as string[],
+  ];
+
+  // Category counts helper
+  const categoryCounts = categories.reduce((acc, cat) => {
+    acc[cat] = cat === ALL_LABEL
+      ? creators.length
+      : creators.filter((c) => c.category === cat).length;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const filtered = creators.filter((c) => {
     const matchCat = active === ALL_LABEL || c.category === active;
     const match24hr = !show24hr || (c.deliveryHours ?? Infinity) <= 24;
     return matchCat && match24hr;

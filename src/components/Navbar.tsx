@@ -1,12 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
 import { routes } from "@/lib/routes";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+
+    getUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <header className="site-header">
@@ -39,9 +58,15 @@ export default function Navbar() {
           >
             ❤️
           </Link>
-          <Link href="/sign-in" className="btn btn--primary btn--sm">
-            Sign In
-          </Link>
+          {user ? (
+            <Link href="/profile" className="btn btn--primary btn--sm">
+              Profile
+            </Link>
+          ) : (
+            <Link href="/sign-in" className="btn btn--primary btn--sm">
+              Sign In
+            </Link>
+          )}
         </div>
 
         {/* Hamburger (mobile only) */}

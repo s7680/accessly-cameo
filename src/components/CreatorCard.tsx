@@ -9,7 +9,7 @@ interface CreatorCardProps {
   variant?: "featured" | "default";
 }
 
-export default function CreatorCard({ creator, href = "#", variant = "default" }: CreatorCardProps) {
+export default function CreatorCard({ creator, variant = "default" }: CreatorCardProps) {
   const [imgError, setImgError] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
 
@@ -200,7 +200,7 @@ export default function CreatorCard({ creator, href = "#", variant = "default" }
         }
       `}</style>
 
-      <a className="cc-card" href={href}>
+      <a className="cc-card" href={`/videos/${creator.id}`}>
         {/* Image */}
         <div className="cc-img-wrap">
           <img

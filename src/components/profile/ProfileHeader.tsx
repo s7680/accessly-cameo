@@ -1,19 +1,33 @@
 // src/components/profile/ProfileHeader.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Button from "@/components/ui/Button";
+import { supabase } from "@/lib/supabaseClient";
+import { getUserById } from "@/lib/db/users";
 
 export default function ProfileHeader() {
   const [editMode, setEditMode] = useState(false);
-  const [profile, setProfile] = useState({
-    name: "Rahul Sharma",
-    mobile: "+91 9876543210",
-    email: "rahul@example.com",
-    instagram: "@rahulsharma",
-  });
+  const [profile, setProfile] = useState<any>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+
+      if (!authData.user) return;
+
+      const { data } = await getUserById(authData.user.id);
+      setProfile(data);
+
+      if (data?.avatar_url) {
+        setAvatar(data.avatar_url);
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -26,8 +40,9 @@ export default function ProfileHeader() {
 
   const handleSave = () => {
     setEditMode(false);
-    // In real app: save to backend
   };
+
+  if (!profile) return null;
 
   return (
     <div
@@ -85,29 +100,29 @@ export default function ProfileHeader() {
         )}
       </div>
 
-      {editMode ? (
+      {editMode && profile ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%", maxWidth: 360 }}>
           <input
             style={{ padding: "8px", borderRadius: 6, border: "1px solid #555", background: "#1a1a1a", color: "#fff" }}
-            value={profile.name}
+            value={profile?.name || ''}
             onChange={(e) => setProfile({ ...profile, name: e.target.value })}
             placeholder="Full Name"
           />
           <input
             style={{ padding: "8px", borderRadius: 6, border: "1px solid #555", background: "#1a1a1a", color: "#fff" }}
-            value={profile.mobile}
+            value={profile?.mobile || ''}
             onChange={(e) => setProfile({ ...profile, mobile: e.target.value })}
             placeholder="Mobile Number"
           />
           <input
             style={{ padding: "8px", borderRadius: 6, border: "1px solid #555", background: "#1a1a1a", color: "#fff" }}
-            value={profile.email}
+            value={profile?.email || ''}
             onChange={(e) => setProfile({ ...profile, email: e.target.value })}
             placeholder="Email ID"
           />
           <input
             style={{ padding: "8px", borderRadius: 6, border: "1px solid #555", background: "#1a1a1a", color: "#fff" }}
-            value={profile.instagram}
+            value={profile?.instagram || ''}
             onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
             placeholder="Instagram"
           />
@@ -116,11 +131,12 @@ export default function ProfileHeader() {
         </div>
       ) : (
         <>
-          <h2 style={{ margin: 0, fontSize: 20 }}>{profile.name}</h2>
+          <h2 style={{ margin: 0, fontSize: 20 }}>{profile?.name}</h2>
           <div style={{ fontSize: 14, color: "#aaa" }}>
-            <p style={{ margin: 4 }}>📱 {profile.mobile}</p>
-            <p style={{ margin: 4 }}>✉️ {profile.email}</p>
-            <p style={{ margin: 4 }}>📷 {profile.instagram}</p>
+            <p style={{ margin: 4 }}>✉️ {profile?.email}</p>
+            <p style={{ margin: 4 }}>📱 {profile?.mobile}</p>
+            <p style={{ margin: 4 }}>📷 {profile?.instagram || '-'}</p>
+            <p style={{ margin: 4 }}>🎭 {profile?.role}</p>
           </div>
           <Button variant="outline" onClick={() => setEditMode(true)}>Edit Profile</Button>
         </>

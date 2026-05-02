@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -9,6 +10,30 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"mobile" | "otp">("mobile");
   const [otp, setOtp] = useState(["", "", "", ""]);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+
+      if (!authData.user) return;
+
+      const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (user) {
+        router.push('/');
+      } else {
+        router.push('/sign-in/onboarding');
+      }
+    };
+
+    checkUser();
+  }, []);
 
   const isValidMobile = (num: string) => /^[6-9]\d{9}$/.test(num);
 
@@ -25,10 +50,11 @@ export default function SignInPage() {
   };
 
   const handleGoogleContinue = async () => {
+    console.log("clicked");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

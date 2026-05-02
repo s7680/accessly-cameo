@@ -1,32 +1,14 @@
 // src/app/videos/[id]/page.tsx
 "use client";
 
-import { useState } from "react";
-import Button from "@/components/ui/Button";
+import { useState, useEffect, useRef } from "react";
+import { useParams } from "next/navigation";
+import { getVideoByCreatorId } from "@/lib/db/videos";
 
-// ---------- Mock data for the creator page ----------
-const creatorData = {
-  name: "DJ Ravi",
-  category: "Music & Comedy",
-  avatar: "/images/dj-ravi.jpg",
-  discountPercent: 60,
-  currentPrice: 4740,
-  oldPrice: 11850,
-  deliveryText: "24hr delivery",
-  rating: 4.82,
-  reviewCount: 421,
-  description:
-    "I create personalized video shoutouts for birthdays, roasts, pep talks, and more. Just tell me what you need and I'll make it unforgettable! Perfect for any occasion.",
-  averageVideoLength: "30:42",
-  lastCompleted: "today at 10:23 AM",
-  videoPreviews: [
-    { id: 1, label: "Intro", thumbnail: "/images/preview-intro.jpg" },
-    { id: 2, label: "Birthday", thumbnail: "/images/preview-birthday.jpg" },
-    { id: 3, label: "Roast", thumbnail: "/images/preview-roast.jpg" },
-    { id: 4, label: "Pep Talk", thumbnail: "/images/preview-peptalk.jpg" },
-    { id: 5, label: "Advice", thumbnail: "/images/preview-advice.jpg" },
-  ],
-};
+import Button from "@/components/ui/Button";
+import { createVideoRequest } from "@/lib/db/videoRequests";
+import { supabase } from "@/lib/supabaseClient";
+
 
 const reasons = [
   "❤️ Mother's Day",
@@ -49,10 +31,87 @@ export default function VideoRequestPage() {
   const [fromName, setFromName] = useState("");
   const [hideVideo, setHideVideo] = useState(false);
 
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("Hindi");
+
+  const [creatorData, setCreatorData] = useState<any>(null);
+  const params = useParams();
+  const languageSectionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      if (!params?.id) return;
+
+      try {
+        const data = await getVideoByCreatorId(params.id as string);
+
+        console.log("VIDEO DATA:", data);
+        if (data) {
+          const user = Array.isArray(data.users) ? data.users[0] : data.users;
+          setCreatorData({
+            name: user?.name,
+            avatar: user?.avatar_url,
+            instagram: user?.instagram,
+            category: data.category,
+            currentPrice: data.price,
+            deliveryText: data.delivery_time,
+            videos: data.sample_video_urls || [],
+            bio: data.bio,
+
+            // added fields
+            language: data.language,
+            max_duration: data.max_duration,
+            occasions: data.occasions,
+            instructions: data.instructions,
+          });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+    load();
+  }, [params.id]);
+
   // Toggle reason chip
   const toggleReason = (reason: string) => {
     setSelectedReason((prev) => (prev === reason ? null : reason));
   };
+
+  const handleSubmit = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      console.log("AUTH USER:", user);
+
+      if (!user) {
+        alert("Please login first");
+        return;
+      }
+
+      await createVideoRequest({
+        user_id: user.id,
+        creator_id: params.id as string,
+        fan_name: user.user_metadata?.name || "User",
+        occasion: selectedReason || "",
+        recipient_name: recipient,
+        recipient_type: recipientType,
+        request_details: instructions,
+        from_name: fromName,
+        language: selectedLanguage,
+        price: creatorData.currentPrice,
+        hide_from_profile: hideVideo,
+      });
+
+      alert("Request submitted successfully");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit request");
+    }
+  };
+
+  if (!creatorData) {
+    return <div style={{ padding: 20 }}>Loading...</div>;
+  }
 
   return (
     <div className="flow-page">
@@ -94,8 +153,8 @@ export default function VideoRequestPage() {
         >
           <div
             style={{
-              width: 64,
-              height: 64,
+              width: 96,
+              height: 96,
               borderRadius: "50%",
               backgroundColor: "#333",
               backgroundImage: `url(${creatorData.avatar})`,
@@ -110,6 +169,24 @@ export default function VideoRequestPage() {
             <p style={{ margin: 0, color: "#aaa", fontSize: 14 }}>
               {creatorData.category}
             </p>
+            {creatorData.instagram && (
+              <button
+                onClick={() => window.open(`https://instagram.com/${creatorData.instagram}`, "_blank")}
+                style={{
+                  marginTop: 6,
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  border: "1px solid #8b5cf6",
+                  background: "transparent",
+                  color: "#8b5cf6",
+                  fontSize: 12,
+                  cursor: "pointer",
+                  fontWeight: 600
+                }}
+              >
+                View Instagram Profile
+              </button>
+            )}
           </div>
         </div>
 
@@ -123,50 +200,22 @@ export default function VideoRequestPage() {
               paddingBottom: 8,
             }}
           >
-            {creatorData.videoPreviews.map((preview) => (
+            {creatorData.videos?.map((url: string, index: number) => (
               <div
-                key={preview.id}
+                key={index}
                 style={{
                   flexShrink: 0,
-                  width: 140,
+                  width: 180,
                   borderRadius: 16,
                   overflow: "hidden",
-                  position: "relative",
                   backgroundColor: "#222",
-                  boxShadow: "0 4px 16px rgba(212,175,55,0.10)",
                 }}
               >
-                <div
-                  style={{
-                    width: "100%",
-                    height: 180,
-                    backgroundImage: `url(${preview.thumbnail})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: "50%",
-                      backgroundColor: "rgba(0,0,0,0.6)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#fff",
-                      fontSize: 20,
-                    }}
-                  >
-                    ▶
-                  </div>
-                </div>
-                <div style={{ padding: "8px 12px", fontSize: 12, color: "#ccc" }}>
-                  {preview.label}
-                </div>
+                <video
+                  src={url}
+                  style={{ width: "100%", height: 240, objectFit: "cover" }}
+                  controls
+                />
               </div>
             ))}
           </div>
@@ -192,29 +241,38 @@ export default function VideoRequestPage() {
                 fontWeight: 600,
               }}
             >
-              {creatorData.discountPercent}% off
+              20% off
             </span>
-            <div style={{ marginTop: 8, fontSize: 28, fontWeight: 700 }}>
-              ₹{creatorData.currentPrice}
-            </div>
-            <div style={{ color: "#888", textDecoration: "line-through" }}>
-              ₹{creatorData.oldPrice}
-            </div>
+            {(() => {
+              const discounted = Number(creatorData.currentPrice) || 0;
+              const original = Math.round(discounted / 0.8); // reverse 20% discount
+              return (
+                <>
+                  <div style={{ marginTop: 8, fontSize: 28, fontWeight: 700 }}>
+                    ₹{discounted}
+                  </div>
+                  <div style={{ color: "#888", textDecoration: "line-through" }}>
+                    ₹{original}
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           <div style={{ textAlign: "right", color: "#aaa", fontSize: 14 }}>
             <p style={{ margin: 0 }}>
-              ⚡ {creatorData.deliveryText}
+              ⚡ {creatorData.deliveryText} delivery
             </p>
-            <p style={{ margin: 0 }}>
-              ⭐ {creatorData.rating} ({creatorData.reviewCount})
-            </p>
+            {/* rating/reviewCount removed */}
           </div>
         </div>
 
         {/* 4. PRIMARY CTA */}
         <Button
           variant="primary"
+          onClick={() => {
+            languageSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
           style={{
             width: "100%",
             minHeight: 52,
@@ -223,10 +281,10 @@ export default function VideoRequestPage() {
             border: "none",
             fontWeight: 600,
             fontSize: 16,
-            marginBottom: 12,
+            marginBottom: 4,
           }}
         >
-          Book a personal video ₹{creatorData.currentPrice.toLocaleString()}+
+          Book a personal video ₹{creatorData.currentPrice?.toLocaleString?.()}+
         </Button>
 
         {/* 5. SECONDARY CTA */}
@@ -238,7 +296,7 @@ export default function VideoRequestPage() {
             borderRadius: 16,
             fontWeight: 600,
             fontSize: 16,
-            marginBottom: 24,
+            marginBottom: 6,
           }}
         >
           Book a business video ₹47,000+
@@ -246,38 +304,111 @@ export default function VideoRequestPage() {
 
         {/* 7. DESCRIPTION + STATS */}
 
-        {/* 7. DESCRIPTION + STATS */}
-        <div style={{ marginBottom: 24 }}>
-          <p style={{ color: "#ccc", lineHeight: 1.5, margin: 0 }}>
-            {showFullDesc
-              ? creatorData.description
-              : `${creatorData.description.slice(0, 150)}...`}
-            <button
-              onClick={() => setShowFullDesc(!showFullDesc)}
+        {/* BIO + DETAILS (combined card) */}
+        <div
+          style={{
+            background: "#1a1a1a",
+            borderRadius: 16,
+            padding: 16,
+            marginTop: 4,
+            marginBottom: 24,
+            border: "1px solid #2a2a2a",
+          }}
+        >
+          {/* BIO */}
+          <div style={{ marginBottom: 16 }}>
+            <h3
               style={{
-                background: "none",
-                border: "none",
-                color: "#8b5cf6",
-                cursor: "pointer",
+                fontSize: 14,
                 fontWeight: 600,
-                padding: 0,
-                marginLeft: 4,
+                letterSpacing: 0.5,
+                marginBottom: 8,
+                color: "#aaa",
               }}
             >
-              {showFullDesc ? "Show less" : "Read more"}
-            </button>
-          </p>
-          <div
-            style={{
-              marginTop: 16,
-              display: "flex",
-              gap: 16,
-              color: "#888",
-              fontSize: 13,
-            }}
-          >
-            <span>Avg. length: {creatorData.averageVideoLength}</span>
-            <span>Last completed: {creatorData.lastCompleted}</span>
+              BIO
+            </h3>
+            <p style={{ color: "#ccc", lineHeight: 1.5, margin: 0 }}>
+              {showFullDesc
+                ? creatorData.bio
+                : (creatorData.bio?.slice(0, 120) || "")}
+              {creatorData.bio && creatorData.bio.length > 120 && (
+                <button
+                  onClick={() => setShowFullDesc(!showFullDesc)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#8b5cf6",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    padding: 0,
+                    marginLeft: 4,
+                  }}
+                >
+                  {showFullDesc ? "Show less" : "Read more"}
+                </button>
+              )}
+            </p>
+          </div>
+
+          {/* DETAILS */}
+          <div>
+            <h3
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: 0.5,
+                marginBottom: 12,
+                color: "#aaa",
+              }}
+            >
+              DETAILS
+            </h3>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "20px auto 1fr",
+                rowGap: 8,
+                columnGap: 6,
+                alignItems: "start",
+                fontSize: 14
+              }}
+            >
+
+              {creatorData.language && (
+                <>
+                  <span>🌐</span>
+                  <span style={{ color: "#aaa" }}>Language</span>
+                  <span style={{ color: "#fff" }}>{creatorData.language}</span>
+                </>
+              )}
+
+              {creatorData.max_duration && (
+                <>
+                  <span>⏱</span>
+                  <span style={{ color: "#aaa" }}>Max duration</span>
+                  <span style={{ color: "#fff" }}>{creatorData.max_duration}</span>
+                </>
+              )}
+
+              {creatorData.occasions && creatorData.occasions.length > 0 && (
+                <>
+                  <span>🎉</span>
+                  <span style={{ color: "#aaa" }}>Occasions</span>
+                  <span style={{ color: "#fff" }}>{creatorData.occasions.join(", ")}</span>
+                </>
+              )}
+
+              {creatorData.instructions && (
+                <>
+                  <span>📝</span>
+                  <span style={{ color: "#aaa" }}>Instructions</span>
+                  <span style={{ color: "#fff" }}>{creatorData.instructions}</span>
+                </>
+              )}
+
+            </div>
           </div>
         </div>
 
@@ -320,6 +451,38 @@ export default function VideoRequestPage() {
 
         {/* 9. FORM START */}
         <div style={{ marginBottom: 48 }}>
+
+          {/* Language selection */}
+          <div
+            ref={languageSectionRef}
+            style={{
+              background: "#1a1a1a",
+              padding: 16,
+              borderRadius: 16,
+              marginBottom: 16
+            }}>
+            <h3 style={{ marginBottom: 12 }}>Select language</h3>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              {["Hindi", "English"].map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => setSelectedLanguage(lang)}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 999,
+                    border: "1px solid",
+                    borderColor: selectedLanguage === lang ? "#d4af37" : "#333",
+                    background: selectedLanguage === lang ? "rgba(212,175,55,0.15)" : "transparent",
+                    color: selectedLanguage === lang ? "#d4af37" : "#ccc",
+                    cursor: "pointer"
+                  }}
+                >
+                  {lang}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Select Occasion */}
           <div style={{
@@ -505,6 +668,7 @@ export default function VideoRequestPage() {
 
           <Button
             variant="primary"
+            onClick={handleSubmit}
             style={{
               width: "100%",
               minHeight: 52,

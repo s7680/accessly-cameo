@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { createVideoForm } from "@/lib/db/videos";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type OfferType = "video" | "drops" | "experiences";
@@ -10,6 +11,7 @@ interface MediaItem {
   id: string;
   url: string;
   name: string;
+  file: File;
   type: "image" | "video";
 }
 
@@ -54,6 +56,7 @@ interface FormState {
   language: string;
   maxDuration: string;
   occasions: string;
+  bio: string;
 
   // Drops extras
   condition: string;
@@ -143,6 +146,7 @@ export default function OnboardingPage() {
     language: "",
     maxDuration: "",
     occasions: "",
+    bio: "",
 
     condition: "",
     authenticity: "",
@@ -164,6 +168,7 @@ export default function OnboardingPage() {
   });
   const [errors, setErrors] = useState<Errors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -229,11 +234,47 @@ export default function OnboardingPage() {
     return Object.keys(e).length === 0;
   }
 
-  function next() {
-    if (!validateStep(step)) return;
-    if (step < TOTAL_STEPS) setStep((s) => s + 1);
-    else setSubmitted(true);
+ async function next() {
+  if (!validateStep(step)) return;
+
+  if (step < TOTAL_STEPS) {
+    setStep((s) => s + 1);
+    return;
   }
+
+  try {
+    setLoading(true);
+    if (!form.selectedType) {
+      setLoading(false);
+      alert("Offer type is required");
+      return;
+    }
+    const files =
+      form.selectedType === "video"
+        ? form.media.map((m) => m.file)
+        : [];
+
+    await createVideoForm({
+      type: form.selectedType as string,
+      category: form.category,
+      price: Number(form.price) || 0,
+      delivery_time: form.deliveryTime,
+      language: form.language,
+      max_duration: form.maxDuration,
+      occasions: form.occasions ? form.occasions.split(",") : [],
+      files,
+      instructions: form.instructions,
+    });
+
+    setLoading(false);
+    setSubmitted(true);
+
+  } catch (err) {
+    console.log(err);
+    setLoading(false);
+    alert((err as any)?.message || "Failed to submit");
+  }
+}
 
   function back() {
     setErrors({});
@@ -258,12 +299,13 @@ export default function OnboardingPage() {
         }
       }
 
-      newItems.push({
-        id: Math.random().toString(36).slice(2),
-        url: URL.createObjectURL(f),
-        name: f.name,
-        type: isVideo ? "video" : "image",
-      });
+     newItems.push({
+  id: Math.random().toString(36).slice(2),
+  url: URL.createObjectURL(f),
+  name: f.name,
+  file: f,
+  type: isVideo ? "video" : "image",
+});
     });
 
     if (newItems.length > 0) setUploadError(null);
@@ -422,6 +464,20 @@ export default function OnboardingPage() {
                "Experience details"}
             </h1>
             <p className="ob-step-sub">Almost there. Set up your offering.</p>
+
+            {/* ── VIDEO: Your bio (above category) ── */}
+            {form.selectedType === "video" && (
+              <div className="ob-field">
+                <label className="ob-label">Your bio</label>
+                <textarea
+                  className="ob-textarea"
+                  placeholder="Tell fans about yourself..."
+                  rows={3}
+                  value={form.bio}
+                  onChange={(e) => set("bio", e.target.value)}
+                />
+              </div>
+            )}
 
             {/* ── Category (all types) ── */}
             <div className="ob-field">
@@ -614,6 +670,7 @@ export default function OnboardingPage() {
                     onChange={(e) => set("instructions", e.target.value)}
                   />
                 </div>
+
               </>
             )}
 
@@ -1147,9 +1204,19 @@ export default function OnboardingPage() {
         {Object.keys(errors).length > 0 && (
           <p className="ob-sticky-error">Fix the errors above to continue</p>
         )}
-        <button className="ob-btn-primary" onClick={next}>
-          {step < TOTAL_STEPS ? "Continue" : "Submit application"}
-          <span className="ob-cta-arrow">{step < TOTAL_STEPS ? "→" : "✓"}</span>
+        <button className="ob-btn-primary" onClick={next} disabled={loading}>
+          {loading ? (
+            <span className="loading-dots">
+              Submitting<span>.</span><span>.</span><span>.</span>
+            </span>
+          ) : (
+            step < TOTAL_STEPS ? "Continue" : "Submit application"
+          )}
+          {!loading && (
+            <span className="ob-cta-arrow">
+              {step < TOTAL_STEPS ? "→" : "✓"}
+            </span>
+          )}
         </button>
       </div>
 
@@ -1720,5 +1787,24 @@ const styles = `
     .ob-step-title { font-size: 28px; }
     .ob-sticky-cta { max-width: 600px; left: 50%; right: auto; transform: translateX(-50%); width: 100%; border-radius: 20px 20px 0 0; }
     .ob-btn-primary { font-size: 17px; }
+  }
+
+  /* Loading dots animation */
+  .loading-dots span {
+    display: inline-block;
+    animation: wave 1.4s infinite;
+  }
+  .loading-dots span:nth-child(1) { animation-delay: 0s; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes wave {
+    0%, 60%, 100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    30% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
   }
 `;
