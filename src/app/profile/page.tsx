@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import RoleToggle from "@/components/profile/RoleToggle";
 import FanSection from "@/components/profile/FanSection";
@@ -109,10 +110,15 @@ const mockListings = [
 export default function ProfilePage() {
   const [role, setRole] = useState<"fan" | "creator">("fan");
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
+
   return (
     <div className="flow-page">
       <div className="container--wide" style={{ maxWidth: 900, margin: "0 auto", padding: "0 16px" }}>
-        <ProfileHeader />
+        <ProfileHeader onLogout={handleLogout} />
         <RoleToggle active={role} onChange={setRole} />
         {role === "fan" ? (
           <FanSection

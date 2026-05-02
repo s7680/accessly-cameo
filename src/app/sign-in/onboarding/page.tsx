@@ -166,13 +166,24 @@ export default function OnboardingPage() {
     <main className="container">
       <div className="section-block onboarding-wrapper">
         <div className="card onboarding-card">
-          <h1 className="onboarding-title">Welcome! Let's get you set up</h1>
-          <p className="onboarding-subtitle">Tell us your name to get started.</p>
+          <h1 className="onboarding-title" style={{ textAlign: 'center' }}>
+            Welcome! Let's get you set up
+          </h1>
 
           <form onSubmit={handleSubmit} className="onboarding-form">
 
             {fields.map(({ id, label, type, placeholder, value, onChange, readOnly, required }) => (
-              <div key={id} className="form-row" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '160px 280px', alignItems: 'center', gap: '12px' }}>
+              <div
+                key={id}
+                className="form-row"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '160px 280px',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px'
+                }}
+              >
                 <label htmlFor={id} className="form-label">
                   {label}{required && <span style={{ color: 'red' }}> *</span>}
                 </label>
@@ -202,7 +213,16 @@ export default function OnboardingPage() {
               </div>
             ))}
 
-            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '160px 280px', alignItems: 'center', gap: '12px' }}>
+            <div
+              className="form-row"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '160px 280px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px'
+              }}
+            >
               <label htmlFor="avatar" className="form-label">
                 Profile Picture
               </label>
@@ -219,7 +239,7 @@ export default function OnboardingPage() {
             {error && <p className="form-error">{error}</p>}
             {success && <p style={{ color: 'green', marginTop: '8px' }}>{success}</p>}
 
-            <div style={{ marginTop: '16px' }}>
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
               <button
                 type="submit"
                 className="btn btn--primary onboarding-btn"

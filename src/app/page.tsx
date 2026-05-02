@@ -3,15 +3,13 @@ import DropCard from "@/components/DropCard";
 import ExperienceCard from "@/components/ExperienceCard";
 import SectionWrapper from "@/components/SectionWrapper";
 import Button from "@/components/ui/Button";
-import {
-  featuredCreators,
-  allCreators,
-  drops,
-  experiences,
-  howItWorksSteps,
-} from "@/lib/mockData";
+import { drops, experiences, howItWorksSteps } from "@/lib/mockData";
+import { getCreatorCards } from "@/lib/db/videos";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const creators = await getCreatorCards();
+  const featuredCreators = creators.slice(0, 5);
+  const allCreators = creators;
   return (
     <>
       {/* ── Section 1: Hero ───────────────────────────────────────────── */}

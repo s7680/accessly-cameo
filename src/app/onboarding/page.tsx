@@ -26,6 +26,7 @@ interface FormState {
   instructions: string;
   // Step 4 – drops / experiences
   media: MediaItem[];
+  displayImage: File | null;
   story: string;
   pricingMode: PricingMode;
   itemName: string;
@@ -124,7 +125,7 @@ export default function OnboardingPage() {
     selectedType: null,
     category: "",
     price: "", deliveryTime: "", instructions: "",
-    media: [], story: "", pricingMode: "bid",
+    media: [], displayImage: null, story: "", pricingMode: "bid",
     itemName: "", startingBid: "", startDate: "", startTime: "",
     endDate: "", endTime: "", fixedPrice: "",
 
@@ -264,6 +265,7 @@ export default function OnboardingPage() {
       occasions: form.occasions ? form.occasions.split(",") : [],
       files,
       instructions: form.instructions,
+      displayImage: form.displayImage,
     });
 
     setLoading(false);
@@ -465,18 +467,42 @@ export default function OnboardingPage() {
             </h1>
             <p className="ob-step-sub">Almost there. Set up your offering.</p>
 
-            {/* ── VIDEO: Your bio (above category) ── */}
+            {/* ── VIDEO: Profile image upload + Your bio (above category) ── */}
             {form.selectedType === "video" && (
-              <div className="ob-field">
-                <label className="ob-label">Your bio</label>
-                <textarea
-                  className="ob-textarea"
-                  placeholder="Tell fans about yourself..."
-                  rows={3}
-                  value={form.bio}
-                  onChange={(e) => set("bio", e.target.value)}
-                />
-              </div>
+              <>
+                <div className="ob-field">
+                  <label className="ob-label">Upload your video card display image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      set("displayImage", file);
+                    }}
+                  />
+                  {form.displayImage && (
+                    <div style={{ marginTop: 10 }}>
+                      <img
+                        src={URL.createObjectURL(form.displayImage)}
+                        alt="preview"
+                        style={{ width: 80, height: 80, borderRadius: 8, objectFit: "cover" }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="ob-field">
+                  <label className="ob-label">Your bio</label>
+                  <textarea
+                    className="ob-textarea"
+                    placeholder="Tell fans about yourself..."
+                    rows={3}
+                    value={form.bio}
+                    onChange={(e) => set("bio", e.target.value)}
+                  />
+                </div>
+              </>
             )}
 
             {/* ── Category (all types) ── */}

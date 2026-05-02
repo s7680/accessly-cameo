@@ -1,17 +1,48 @@
 // src/components/profile/CreatorSection.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { getCreatorVideoRequests } from "@/lib/db/videoRequests";
 import CreatorVideos from "./CreatorVideos";
 import CreatorListings from "./CreatorListings";
 
 type Props = {
-  requests: any[];
   listings: any[];
 };
 
-export default function CreatorSection({ requests, listings }: Props) {
+export default function CreatorSection({ listings }: Props) {
+  const [requests, setRequests] = useState<any[]>([]);
   const [tab, setTab] = useState<"requests" | "listings">("requests");
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const res = await getCreatorVideoRequests(user.id);
+
+      const formatted = res.map((r: any) => ({
+        id: r.id,
+        fanName: r.fan_name,
+        recipientName: r.recipient_name,
+        recipientType: r.recipient_type,
+        occasion: r.occasion,
+        instructions: r.request_details,
+        fromName: r.from_name,
+        language: r.language,
+        price: r.price,
+        status: r.status,
+        videoUrl: r.video_url,
+        created_at: r.created_at,
+      }));
+
+      setRequests(formatted);
+    };
+
+    fetchRequests();
+  }, []);
 
   return (
     <div>

@@ -13,27 +13,8 @@ export default function SignInPage() {
 
   const router = useRouter();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-
-      if (!authData.user) return;
-
-      const { data: user } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (user) {
-        router.push('/');
-      } else {
-        router.push('/sign-in/onboarding');
-      }
-    };
-
-    checkUser();
-  }, []);
+  // NOTE: Do NOT handle onboarding logic here.
+  // Redirect decisions should be handled in /auth/callback after OAuth.
 
   const isValidMobile = (num: string) => /^[6-9]\d{9}$/.test(num);
 
@@ -55,6 +36,7 @@ export default function SignInPage() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        flowType: "pkce",
       },
     });
 

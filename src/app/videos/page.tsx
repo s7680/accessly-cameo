@@ -20,7 +20,13 @@ export default function VideosPage() {
     async function load() {
       try {
         const data = await getCreatorCards();
-        setCreators(data);
+
+        const withFallback = data.map((c: any) => ({
+          ...c,
+          display_image: c.display_image || "https://via.placeholder.com/300?text=No+Image",
+        }));
+
+        setCreators(withFallback);
       } catch (err) {
         console.log(err);
       }

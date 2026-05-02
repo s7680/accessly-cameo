@@ -11,6 +11,7 @@ export type VideoFormPayload = {
   files?: File[]; // real video files
   instructions?: string;
   bio?: string;
+  displayImage?: File;
 };
 
 async function uploadVideos(files: File[], userId: string) {
@@ -59,6 +60,29 @@ export async function createVideoForm(payload: VideoFormPayload) {
     videoUrls = await uploadVideos(payload.files, creator_id);
   }
 
+  let displayImageUrl: string | null = null;
+
+  if ((payload as any).displayImage) {
+    const file = (payload as any).displayImage as File;
+    const cleanName = file.name
+      .replace(/[^a-zA-Z0-9.]/g, "-")
+      .toLowerCase();
+
+    const filePath = `display-images/${creator_id}/${Date.now()}-${cleanName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(filePath);
+
+    displayImageUrl = urlData.publicUrl;
+  }
+
   // 2. insert into video_form table
   const { data, error } = await supabase
     .from('video_form')
@@ -74,6 +98,7 @@ export async function createVideoForm(payload: VideoFormPayload) {
       sample_video_urls: videoUrls,
       instructions: payload.instructions || null,
       bio: payload.bio || null,
+      display_image: displayImageUrl,
     })
     .select()
     .single();
@@ -104,7 +129,8 @@ export async function getCreatorCards() {
         price,
         type,
         category,
-        delivery_time
+        delivery_time,
+        display_image
       )
     `)
     .eq('video_form.type', 'video');
@@ -122,6 +148,7 @@ export async function getCreatorCards() {
       id: user.id,
       name: user.name,
       avatar_url: user.avatar_url,
+      display_image: video?.display_image || null,
       price: video?.price || null,
       category: video?.category || null,
       delivery_time: video?.delivery_time || null,

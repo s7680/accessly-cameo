@@ -1,5 +1,6 @@
 // src/components/profile/CreatorVideos.tsx
 import { useRef, useState } from "react";
+import { uploadVideoForRequest } from "@/lib/db/videoRequests";
 import Button from "@/components/ui/Button";
 
 type Props = { requests: any[] };
@@ -15,83 +16,114 @@ export default function CreatorVideos({ requests }: Props) {
 }
 
 function RequestCard({ req }: { req: any }) {
+  const [videoUrl, setVideoUrl] = useState<string | null>(req.videoUrl || null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setFileName(file.name);
+    if (!file) return;
+
+    setFileName(file.name);
+    setSelectedFile(file);
+    setUploadSuccess(false);
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile || isUploading) return;
+
+    setIsUploading(true);
+
+    try {
+      const url = await uploadVideoForRequest(req.id, selectedFile);
+      setVideoUrl(url);
+      setUploadSuccess(true);
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
-    <div
-      style={{
-        border: "1px solid #333",
-        borderRadius: 8,
-        padding: 16,
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-      }}
-    >
+    <div style={{ border: "1px solid #333", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 10, background: "#111" }}>
       <h3 style={{ margin: 0 }}>Fan: {req.fanName}</h3>
-
-      <div style={{ marginTop: 6 }}>
-        {/* 1. Who is this video for */}
-        <div style={{ marginBottom: 6 }}>
-          <p style={{ margin: "0 0 2px", fontSize: 12, color: "#888" }}>Who is this video for?</p>
-          <p style={{ margin: 0, color: "#ccc" }}>
-            {req.recipient || "—"}
-            {req.recipientPronoun ? ` (${req.recipientPronoun})` : ""}
-          </p>
-        </div>
-
-        {/* 3. Who is this video from */}
-        <div style={{ marginBottom: 6 }}>
-          <p style={{ margin: "0 0 2px", fontSize: 12, color: "#888" }}>Who is this video from?</p>
-          <p style={{ margin: 0, color: "#ccc" }}>
-            {req.fromName || "—"}
-            {req.fromPronoun ? ` (${req.fromPronoun})` : ""}
-          </p>
-        </div>
-
-        {/* Occasion */}
-        <div style={{ marginBottom: 6 }}>
-          <p style={{ margin: "0 0 2px", fontSize: 12, color: "#888" }}>Occasion</p>
-          <p style={{ margin: 0, color: "#ccc" }}>
-            {req.occasion || "—"}
-          </p>
-        </div>
-
-        {/* Privacy */}
-        {typeof req.hideVideo === "boolean" && (
-          <div style={{ fontSize: 13, color: "#aaa" }}>
-            Privacy: {req.hideVideo ? "Hidden from profile" : "Public"}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <p style={{ margin: "6px 0 2px", fontSize: 12, color: "#888" }}>Request details</p>
-        <p style={{ margin: 0, color: "#ccc" }}>{req.instructions || "—"}</p>
-      </div>
       <p style={{ margin: 0, color: "#aaa", fontSize: 13 }}>
-        Delivery by: {req.deadline || "—"}
+        <strong>Requested on:</strong> {req.created_at ? new Date(req.created_at).toLocaleString() : "—"}
       </p>
 
-      <div style={{ marginTop: 6 }}>
-        <p style={{ margin: "0 0 2px", fontSize: 12, color: "#888" }}>Payment</p>
-        <p style={{ margin: 0, color: "#4caf50", fontWeight: 500 }}>
-          Paid: ₹{req.amountPaid ? Number(req.amountPaid).toLocaleString() : "—"}
+      <p style={{ margin: 0, color: "#ccc" }}>
+        <strong>Recipient:</strong> {req.recipientName || "—"} {req.recipientType ? `(${req.recipientType})` : ""}
+      </p>
+
+      <p style={{ margin: 0, color: "#ccc" }}>
+        <strong>Occasion:</strong> {req.occasion || "—"}
+      </p>
+
+      <p style={{ margin: 0, color: "#ccc" }}>
+        <strong>From:</strong> {req.fromName || "—"}
+      </p>
+
+      <p style={{ margin: 0, color: "#ccc" }}>
+        <strong>Language:</strong> {req.language || "—"}
+      </p>
+
+      <p style={{ marginTop: 6, color: "#ccc" }}>
+        <strong>Request details:</strong> {req.instructions || "—"}
+      </p>
+
+      <p
+        style={{
+          marginTop: 8,
+          fontWeight: 800,
+          fontSize: 18,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          padding: "6px 10px",
+          borderRadius: 6,
+          display: "inline-block",
+          width: "fit-content",
+          color:
+            req.status?.toLowerCase() === "pending"
+              ? "#8b0000"
+              : req.status?.toLowerCase() === "completed"
+              ? "#006400"
+              : "#ccc",
+          backgroundColor:
+            req.status?.toLowerCase() === "pending"
+              ? "rgba(139, 0, 0, 0.15)"
+              : req.status?.toLowerCase() === "completed"
+              ? "rgba(0, 100, 0, 0.15)"
+              : "transparent",
+        }}
+      >
+        Status: {req.status || "—"}
+      </p>
+
+      <p style={{ margin: 0, color: "#4caf50", fontWeight: 500 }}>
+        <strong>Price:</strong> ₹{req.price ? Number(req.price).toLocaleString() : "—"}
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+        <p style={{ color: "#4caf50", cursor: "pointer", margin: 0 }} onClick={() => fileRef.current?.click()}>
+          Choose Video
         </p>
-      </div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-        <Button
-          variant="primary"
-          onClick={() => fileRef.current?.click()}
-        >
-          Upload Video
-        </Button>
+
+        {selectedFile && (
+          <Button variant="primary" onClick={handleUpload} disabled={isUploading} style={{ width: "fit-content" }}>
+            {isUploading ? "Uploading..." : "Upload"}
+          </Button>
+        )}
+
+        {uploadSuccess && (
+          <span style={{ fontSize: 13, color: "#4caf50" }}>
+            Video successfully uploaded
+          </span>
+        )}
+
         <input
           type="file"
           accept="video/*"
@@ -99,7 +131,17 @@ function RequestCard({ req }: { req: any }) {
           style={{ display: "none" }}
           onChange={handleFileChange}
         />
+
         {fileName && <span style={{ fontSize: 14, color: "#4caf50" }}>{fileName}</span>}
+
+        {videoUrl && (
+          <div style={{ marginTop: 10 }}>
+            <p style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
+              Uploaded Video
+            </p>
+            <video src={videoUrl} controls style={{ width: "100%", borderRadius: 8 }} />
+          </div>
+        )}
       </div>
     </div>
   );

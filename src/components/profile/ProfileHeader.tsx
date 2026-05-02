@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button";
 import { supabase } from "@/lib/supabaseClient";
 import { getUserById } from "@/lib/db/users";
 
-export default function ProfileHeader() {
+export default function ProfileHeader({ onLogout }: { onLogout?: () => void }) {
   const [editMode, setEditMode] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -131,7 +131,25 @@ export default function ProfileHeader() {
         </div>
       ) : (
         <>
-          <h2 style={{ margin: 0, fontSize: 20 }}>{profile?.name}</h2>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+            <h2 style={{ margin: 0, fontSize: 20 }}>{profile?.name}</h2>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #444",
+                  background: "transparent",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontSize: 12
+                }}
+              >
+                Logout
+              </button>
+            )}
+          </div>
           <div style={{ fontSize: 14, color: "#aaa" }}>
             <p style={{ margin: 4 }}>✉️ {profile?.email}</p>
             <p style={{ margin: 4 }}>📱 {profile?.mobile}</p>

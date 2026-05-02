@@ -89,7 +89,6 @@ export default function VideoRequestPage() {
       }
 
       await createVideoRequest({
-        user_id: user.id,
         creator_id: params.id as string,
         fan_name: user.user_metadata?.name || "User",
         occasion: selectedReason || "",

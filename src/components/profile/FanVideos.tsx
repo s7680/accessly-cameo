@@ -1,33 +1,77 @@
 // src/components/profile/FanVideos.tsx
-import Button from "@/components/ui/Button";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { getFanVideoRequests } from "@/lib/db/videoRequests";
 
-type Props = { videos: any[] };
+export default function FanVideos() {
+  const [videos, setVideos] = useState<any[]>([]);
 
-export default function FanVideos({ videos }: Props) {
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const requests = await getFanVideoRequests(user.id);
+
+      const formatted = requests.map((r: any) => ({
+        id: r.id,
+        title: "Video Request",
+        creatorName: r.users?.name,
+        status: r.status,
+        recipient: r.recipient_name,
+        fromName: r.from_name,
+        occasion: r.occasion,
+        instructions: r.request_details,
+        amountPaid: r.price,
+        videoUrl: r.video_url,
+        createdAt: r.created_at,
+      }));
+
+      setVideos(formatted);
+    };
+
+    fetchData();
+  }, []);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {videos.map((item) => (
         <div
           key={item.id}
           style={{
             border: "1px solid #333",
-            borderRadius: 8,
+            borderRadius: 12,
             padding: 16,
             display: "flex",
             flexDirection: "column",
             gap: 10,
+            background: "#111",
           }}
         >
           <h3 style={{ margin: 0, fontSize: 18 }}>
             {item.title || "Video Request"}
           </h3>
-          <p style={{ margin: 0, color: "#aaa" }}>
-            by {item.creatorName || "—"}
+          <p style={{ margin: 0, color: "#aaa", fontSize: 13 }}>
+            Requested on: {item.createdAt ? new Date(item.createdAt).toLocaleString() : "—"}
           </p>
 
           {/* Status */}
-          <p style={{ margin: 0, color: item.status === "completed" ? "#4caf50" : "#ff9800" }}>
-            ● {item.status || "pending"}
+          <p
+            style={{
+              marginTop: 6,
+              fontWeight: 800,
+              fontSize: 18,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              color:
+                item.status === "completed"
+                  ? "#006400"
+                  : item.status === "pending"
+                  ? "#8b0000"
+                  : "#ccc",
+            }}
+          >
+            Status: {item.status || "pending"}
           </p>
 
           {/* Who is this video for */}
