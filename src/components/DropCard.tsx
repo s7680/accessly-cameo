@@ -41,6 +41,7 @@ export default function DropCard({ drop }: DropCardProps) {
   const router = useRouter();
 
   if (!drop) return null;
+  const mode = drop.pricingMode || "bid";
 
   // Use a safe fallback for endsIn if missing or invalid
   const safeEndsIn =
@@ -122,13 +123,19 @@ export default function DropCard({ drop }: DropCardProps) {
         </div>
 
         <div className="drop-card__actions">
-          <Button
-            aria-label={`Place bid on ${drop.title}`}
-            onClick={() => router.push(`${routes.bid(drop.id)}?type=drop`)}
-          >
-            Place Bid
-          </Button>
-          {drop.buyNowPrice !== null && (
+          {mode === "bid" && (
+            <Button
+              aria-label={`Place bid on ${drop.title}`}
+              onClick={() => {
+                if (!drop?.id) return;
+                router.push(`/bid/${String(drop.id)}?type=drop`);
+              }}
+            >
+              Place Bid
+            </Button>
+          )}
+
+          {mode === "fixed" && drop.buyNowPrice !== null && (
             <Button
               variant="primary"
               aria-label={`Buy now — ${drop.title}`}
@@ -139,6 +146,33 @@ export default function DropCard({ drop }: DropCardProps) {
             >
               Buy Now — ₹{(drop.buyNowPrice ?? 0).toLocaleString("en-IN")}
             </Button>
+          )}
+
+          {mode === "hybrid" && (
+            <>
+              <Button
+                aria-label={`Place bid on ${drop.title}`}
+                onClick={() => {
+                  if (!drop?.id) return;
+                  router.push(`/bid/${String(drop.id)}?type=drop`);
+                }}
+              >
+                Place Bid
+              </Button>
+
+              {drop.buyNowPrice !== null && (
+                <Button
+                  variant="primary"
+                  aria-label={`Buy now — ${drop.title}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(routes.checkout);
+                  }}
+                >
+                  Buy Now — ₹{(drop.buyNowPrice ?? 0).toLocaleString("en-IN")}
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>

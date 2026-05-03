@@ -1,54 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DropCard from "@/components/DropCard";
-
-// ── Mock Data ──────────────────────────────────────────────────────────────────
-export interface Drop {
-  id: string;
-  title: string;
-  creator: string;
-  category: string;
-  currentBid: number;
-  buyNowPrice?: number;
-  bidCount: number;
-  endsInSeconds: number;
-  image: string;
-}
-
-const allDrops: Drop[] = [
-  { id: "1",  title: "Signed Virat Kohli Jersey",       creator: "SportsVault",       category: "Sports",       currentBid: 42500,  buyNowPrice: 75000,  bidCount: 38, endsInSeconds: 7200,   image: "jersey1"  },
-  { id: "2",  title: "Rohit Sharma Bat (Match-Used)",   creator: "CricketLegends",    category: "Sports",       currentBid: 31000,  buyNowPrice: 60000,  bidCount: 22, endsInSeconds: 18000,  image: "bat1"     },
-  { id: "3",  title: "Shah Rukh Khan Autograph Card",   creator: "BollywoodDrops",    category: "Bollywood",    currentBid: 12500,                       bidCount: 23, endsInSeconds: 10800,  image: "srk1"     },
-  { id: "4",  title: "Deepika Padukone Signed Poster",  creator: "StarMoments",       category: "Bollywood",    currentBid: 9800,   buyNowPrice: 20000,  bidCount: 17, endsInSeconds: 64800,  image: "dp1"      },
-  { id: "5",  title: "PM Modi Signed Photograph",       creator: "PoliticaVault",     category: "Politics",     currentBid: 55000,                       bidCount: 61, endsInSeconds: 3600,   image: "modi1"    },
-  { id: "6",  title: "Rahul Gandhi Campaign Letter",    creator: "PolDocs",           category: "Politics",     currentBid: 8200,                        bidCount: 9,  endsInSeconds: 172800, image: "rg1"      },
-  { id: "7",  title: "1983 World Cup Replica Trophy",   creator: "SportsMemorabilia", category: "Collectibles", currentBid: 22000,  buyNowPrice: 40000,  bidCount: 44, endsInSeconds: 14400,  image: "trophy1"  },
-  { id: "8",  title: "Vintage IPL Match Ticket (2008)", creator: "CricketCollect",    category: "Collectibles", currentBid: 4500,                        bidCount: 12, endsInSeconds: 108000, image: "ticket1"  },
-  { id: "9",  title: "Sachin Tendulkar Autograph",      creator: "MasterBlaster",     category: "Autographs",   currentBid: 88000,  buyNowPrice: 150000, bidCount: 76, endsInSeconds: 20700,  image: "sachin1"  },
-  { id: "10", title: "MS Dhoni Signed Gloves",          creator: "DhoniDrops",        category: "Autographs",   currentBid: 61000,                       bidCount: 53, endsInSeconds: 39600,  image: "dhoni1"   },
-  { id: "11", title: "Ranveer Singh Signed Cap",        creator: "BollywoodDrops",    category: "Bollywood",    currentBid: 7200,   buyNowPrice: 15000,  bidCount: 8,  endsInSeconds: 79200,  image: "rv1"      },
-  { id: "12", title: "PV Sindhu Racket (Tournament)",   creator: "BadmintonVault",    category: "Sports",       currentBid: 18000,  buyNowPrice: 35000,  bidCount: 29, endsInSeconds: 21600,  image: "sindhu1"  },
-  { id: "13", title: "Neeraj Chopra Javelin Print",     creator: "OlympicsVault",     category: "Collectibles", currentBid: 13500,                       bidCount: 19, endsInSeconds: 50400,  image: "neeraj1"  },
-  { id: "14", title: "Alia Bhatt Script Page (Signed)", creator: "StarMoments",       category: "Autographs",   currentBid: 6800,   buyNowPrice: 12000,  bidCount: 14, endsInSeconds: 32400,  image: "alia1"    },
-  { id: "15", title: "Indian Constitution Replica",     creator: "PoliticaVault",     category: "Politics",     currentBid: 33000,                       bidCount: 27, endsInSeconds: 259200, image: "const1"   },
-  { id: "16", title: "Kapil Dev World Cup Photo",       creator: "CricketLegends",    category: "Autographs",   currentBid: 24500,  buyNowPrice: 45000,  bidCount: 35, endsInSeconds: 25200,  image: "kapil1"   },
-];
+import { getDrops } from "@/lib/db/listings";
 
 const ALL_LABEL = "All";
 const categories = [ALL_LABEL, "Autographs", "Sports", "Bollywood", "Politics", "Collectibles"];
 
-const categoryCounts = categories.reduce((acc, cat) => {
-  acc[cat] =
-    cat === ALL_LABEL
-      ? allDrops.length
-      : allDrops.filter((d) => d.category === cat).length;
-  return acc;
-}, {} as Record<string, number>);
-
-// ── Page ───────────────────────────────────────────────────────────────────────
-export default function DropsPage() {
+const DropsPage = () => {
   const [active, setActive]                 = useState(ALL_LABEL);
   const [showUrgent, setShowUrgent]         = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(true);
@@ -56,22 +16,40 @@ export default function DropsPage() {
   const [sort, setSort]                     = useState("ending_soon");
   const [lotType, setLotType] = useState<"all" | "auction" | "buyNow">("all");
   const router = useRouter();
+  const [allDrops, setAllDrops] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadDrops() {
+      const data = await getDrops();
+      setAllDrops(data);
+    }
+    loadDrops();
+  }, []);
+
+  const categoryCounts = categories.reduce((acc, cat) => {
+    acc[cat] =
+      cat === ALL_LABEL
+        ? allDrops.length
+        : allDrops.filter((d) => d.category === cat).length;
+    return acc;
+  }, {} as Record<string, number>);
 
   const filtered = allDrops.filter((d) => {
     const matchCat    = active === ALL_LABEL || d.category === active;
-    const matchUrgent = !showUrgent || d.endsInSeconds <= 21600;
+    const matchUrgent = !showUrgent || new Date(d.end_datetime).getTime() - Date.now() <= 21600000;
 
     const matchLot =
       lotType === "all" ||
-      (lotType === "auction" && !d.buyNowPrice) ||
-      (lotType === "buyNow" && !!d.buyNowPrice);
+      (lotType === "auction" && d.pricing_mode === "bid") ||
+      (lotType === "buyNow" &&
+        (d.pricing_mode === "fixed" || d.pricing_mode === "hybrid"));
 
     return matchCat && matchUrgent && matchLot;
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    if (sort === "ending_soon")  return a.endsInSeconds - b.endsInSeconds;
-    if (sort === "highest_bids") return b.currentBid - a.currentBid;
+    if (sort === "ending_soon")  return new Date(a.end_datetime).getTime() - new Date(b.end_datetime).getTime();
+    if (sort === "highest_bids") return (b.starting_bid || 0) - (a.starting_bid || 0);
     if (sort === "newest")       return parseInt(b.id) - parseInt(a.id);
     return 0;
   });
@@ -189,13 +167,25 @@ export default function DropsPage() {
                 <DropCard
                   key={drop.id}
                   drop={{
-                    ...drop,
-                    buyNowPrice: drop.buyNowPrice ?? null,
-                    creatorName: drop.creator,
-                    creatorAvatar: "",
-                    totalBids: drop.bidCount,
-                    endsIn: new Date(Date.now() + drop.endsInSeconds * 1000).toISOString(),
-                    description: "",
+                    id: drop.id,
+                    title: drop.item_name,
+                    creatorName: drop.display_name,
+                    creatorAvatar: drop.display_image || "",
+                    category: drop.category,
+                    currentBid: drop.starting_bid || 0,
+                    buyNowPrice: drop.fixed_price || null,
+                   pricingMode:
+  drop.pricing_mode === "Bid"
+    ? "bid"
+    : drop.pricing_mode === "buyNow"
+    ? "fixed"
+    : drop.pricing_mode === "Both"
+    ? "hybrid"
+    : "bid",
+                    totalBids: 0,
+                    endsIn: drop.end_datetime,
+                    image: drop.display_image,
+                    description: drop.product_details || "",
                     edition: "1 of 1",
                   }}
                 />
@@ -273,7 +263,9 @@ export default function DropsPage() {
       </div>
     </div>
   );
-}
+};
+
+export default DropsPage;
 
 // NOTE: To make the grid responsive, add CSS for `.drops-grid` in your CSS file, e.g.:
 // @media (max-width: 900px) {

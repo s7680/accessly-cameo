@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface CreatorHeaderProps {
   type: "experience" | "drop";
@@ -14,7 +14,7 @@ interface CreatorHeaderProps {
   reviewCount: number;
   listingTitle: string;
   listingId: string;
-  endTime: Date;
+  endTime: Date | null;
   isFollowing?: boolean;
 }
 
@@ -24,15 +24,32 @@ function formatFollowers(n: number): string {
   return String(n);
 }
 
-function useCountdown(endTime: Date) {
+function useCountdown(endTime: Date | null) {
   const [now, setNow] = useState(Date.now());
-  // In a real app: useEffect with setInterval
-  const diff = endTime.getTime() - now;
-  const h = Math.max(0, Math.floor(diff / 3_600_000));
-  const m = Math.max(0, Math.floor((diff % 3_600_000) / 60_000));
-  const s = Math.max(0, Math.floor((diff % 60_000) / 1_000));
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const time = endTime ? new Date(endTime).getTime() : null;
+
+  if (!time || isNaN(time)) {
+    return { h: 0, m: 0, s: 0, isUrgent: false, expired: true };
+  }
+
+  const diff = time - now;
+
+  if (diff <= 0) {
+    return { h: 0, m: 0, s: 0, isUrgent: false, expired: true };
+  }
+
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const s = Math.floor((diff % 60_000) / 1_000);
   const isUrgent = diff < 3_600_000;
-  return { h, m, s, isUrgent, expired: diff <= 0 };
+
+  return { h, m, s, isUrgent, expired: false };
 }
 
 export default function CreatorHeader({
@@ -52,6 +69,12 @@ export default function CreatorHeader({
 }: CreatorHeaderProps) {
   const [following, setFollowing] = useState(initialFollow);
   const timer = useCountdown(endTime);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const pad = (n: number) => String(n).padStart(2, "0");
   const stars = Array.from({ length: 5 }, (_, i) => i < Math.round(rating));
@@ -326,21 +349,25 @@ export default function CreatorHeader({
       <div className="ch-listing">
         <div className="ch-listing-title">{listingTitle}</div>
         <div className={`ch-timer ${timer.isUrgent ? "urgent" : ""}`}>
-          <span className="ch-timer-label">Ends in</span>
-          <div className="ch-timer-seg">
-            <span className="ch-timer-num">{pad(timer.h)}</span>
-            <span className="ch-timer-unit">hrs</span>
-          </div>
-          <span className="ch-timer-colon">:</span>
-          <div className="ch-timer-seg">
-            <span className="ch-timer-num">{pad(timer.m)}</span>
-            <span className="ch-timer-unit">min</span>
-          </div>
-          <span className="ch-timer-colon">:</span>
-          <div className="ch-timer-seg">
-            <span className="ch-timer-num">{pad(timer.s)}</span>
-            <span className="ch-timer-unit">sec</span>
-          </div>
+          {!mounted ? null : (
+            <>
+              <span className="ch-timer-label">Ends in</span>
+              <div className="ch-timer-seg">
+                <span className="ch-timer-num">{pad(timer.h)}</span>
+                <span className="ch-timer-unit">hrs</span>
+              </div>
+              <span className="ch-timer-colon">:</span>
+              <div className="ch-timer-seg">
+                <span className="ch-timer-num">{pad(timer.m)}</span>
+                <span className="ch-timer-unit">min</span>
+              </div>
+              <span className="ch-timer-colon">:</span>
+              <div className="ch-timer-seg">
+                <span className="ch-timer-num">{pad(timer.s)}</span>
+                <span className="ch-timer-unit">sec</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>

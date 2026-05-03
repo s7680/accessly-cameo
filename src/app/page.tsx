@@ -1,15 +1,44 @@
+"use client";
 import CreatorCard from "@/components/CreatorCard";
 import DropCard from "@/components/DropCard";
 import ExperienceCard from "@/components/ExperienceCard";
 import SectionWrapper from "@/components/SectionWrapper";
 import Button from "@/components/ui/Button";
-import { drops, experiences, howItWorksSteps } from "@/lib/mockData";
+import { howItWorksSteps } from "@/lib/mockData";
+import { getExperiences } from "@/lib/db/listings";
+import { getDrops } from "@/lib/db/listings";
+import { useEffect, useState } from "react";
 import { getCreatorCards } from "@/lib/db/videos";
 
-export default async function HomePage() {
-  const creators = await getCreatorCards();
-  const featuredCreators = creators.slice(0, 5);
-  const allCreators = creators;
+export default function HomePage() {
+  const [drops, setDrops] = useState<any[]>([]);
+  const [allCreators, setAllCreators] = useState<any[]>([]);
+  const [featuredCreators, setFeaturedCreators] = useState<any[]>([]);
+  const [experiences, setExperiences] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadDrops() {
+      const data = await getDrops();
+      setDrops(data || []);
+    }
+    loadDrops();
+  }, []);
+  useEffect(() => {
+    async function loadCreators() {
+      const data = await getCreatorCards();
+      setAllCreators(data || []);
+      setFeaturedCreators((data || []).slice(0, 5));
+    }
+    loadCreators();
+  }, []);
+  useEffect(() => {
+    async function loadExperiences() {
+      const data = await getExperiences();
+      setExperiences(data || []);
+    }
+    loadExperiences();
+  }, []);
+
   return (
     <>
       {/* ── Section 1: Hero ───────────────────────────────────────────── */}
@@ -38,25 +67,15 @@ export default async function HomePage() {
             <span className="hero__trust-item"><span>✦</span> 50k+ videos delivered</span>
             <span className="hero__trust-item"><span>✦</span> 1,200+ verified creators</span>
           </div>
-
-          <div className="hero__creators animate-fade-up animate-delay-4">
-            {featuredCreators.map((creator) => (
-              <CreatorCard
-                key={creator.id}
-                creator={creator}
-                variant="featured"
-              />
-            ))}
-          </div>
         </div>
       </section>
 
       {/* ── Section 2: Personalised Videos ───────────────────────────── */}
       <SectionWrapper
         id="videos"
-        eyebrow="Personalised Video Messages"
+        eyebrow={<span className="section-eyebrow--highlight">① Personalised Video Messages</span>}
         title="A message that lasts forever."
-        subtitle="Choose your creator, share your story, and receive a custom video crafted just for you — birthdays, milestones, surprises, or just because."
+        subtitle="Request a personalised video directly from your favourite creators. Perfect for birthdays, surprises, or meaningful moments — delivered just for you."
         titleAlign="left"
         action={<Button href="/creators" variant="secondary">See All Creators</Button>}
       >
@@ -70,15 +89,33 @@ export default async function HomePage() {
       {/* ── Section 3: Drops ─────────────────────────────────────────── */}
       <SectionWrapper
         id="drops"
-        eyebrow="Drops — Limited Edition Collectibles"
+        eyebrow={<span className="section-eyebrow--highlight">② Drops — Limited Edition Collectibles</span>}
         title={<>Own something <em>truly</em> rare.</>}
-        subtitle="Auction-first collectibles and digital artefacts released in limited editions. Bid now — these won't return."
+        subtitle="Own exclusive items directly from creators — signed memorabilia, rare collectibles, and one-time drops. Bid or buy before they’re gone forever."
         titleAlign="left"
         action={<Button href="/drops" variant="secondary">Browse All Drops</Button>}
       >
         <div className="card-grid card-grid--3">
-          {drops.map((drop) => (
-            <DropCard key={drop.id} drop={drop} />
+          {drops.length === 0 ? (
+            <p>No drops found</p>
+          ) : drops.map((drop) => (
+            <DropCard
+              key={drop.id}
+              drop={{
+                id: drop?.id || "",
+                title: drop?.item_name || "Untitled",
+                creatorName: drop?.display_name || "Unknown",
+                creatorAvatar: drop?.display_image || "",
+                category: drop?.category || "General",
+                currentBid: Number(drop?.starting_bid) || 0,
+                buyNowPrice: drop?.fixed_price ? Number(drop.fixed_price) : null,
+                totalBids: 0,
+                endsIn: drop?.end_datetime || null,
+                image: drop?.display_image || "",
+                description: drop?.product_details || "",
+                edition: "1 of 1",
+              }}
+            />
           ))}
         </div>
       </SectionWrapper>
@@ -86,15 +123,39 @@ export default async function HomePage() {
       {/* ── Section 4: Experiences ────────────────────────────────────── */}
       <SectionWrapper
         id="experiences"
-        eyebrow="Experiences — Live & In-Person"
+        eyebrow={<span className="section-eyebrow--highlight">③ Experiences — Live & In-Person</span>}
         title="Be in the room where it happens."
-        subtitle="Studio sessions, set visits, workshops, dinners — book your spot or place a bid before it's gone."
+        subtitle="Access real-world experiences with creators — meet them, train with them, or join exclusive events. Limited spots, real access."
         titleAlign="left"
         action={<Button href="/experiences" variant="secondary">All Experiences</Button>}
       >
         <div className="card-grid card-grid--3">
-          {experiences.map((experience) => (
-            <ExperienceCard key={experience.id} experience={experience} />
+          {experiences.length === 0 ? (
+            <p>No experiences found</p>
+          ) : experiences.map((exp) => (
+            <ExperienceCard
+              key={exp.id}
+              experience={{
+                id: exp.id,
+                title: exp.about_experience || "Experience",
+                description: exp.fan_benefits || "",
+                category: exp.category || "General",
+                image: exp.display_image || "",
+                creatorName: exp.display_name || "Unknown",
+                creatorAvatar: exp.display_image || "",
+                creatorId: exp.creator_id,
+                location: exp.location || "",
+                date: exp.experience_date || exp.start_date || null,
+                duration: exp.duration_minutes ? `${exp.duration_minutes} mins` : "",
+                pricingMode: "buyNow",
+                capacity: exp.guests || 0,
+                spotsLeft: exp.guests || 0,
+                buyNowPrice: 0,
+                currentBid: null,
+                endsIn: null,
+                tags: [exp.category || "General"],
+              }}
+            />
           ))}
         </div>
       </SectionWrapper>
@@ -104,7 +165,7 @@ export default async function HomePage() {
         id="how-it-works"
         eyebrow="How It Works"
         title="Simple. Transparent. Unforgettable."
-        subtitle="From first click to lasting memory — here's how Luminary works."
+        subtitle="Discover how you can connect, collect, and experience creators in three simple steps."
       >
         <div className="how-it-works__grid">
           {howItWorksSteps.map((step) => (

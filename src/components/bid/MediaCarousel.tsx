@@ -31,8 +31,20 @@ export default function MediaCarousel({ media, title }: MediaCarouselProps) {
     return () => window.removeEventListener("keydown", handler);
   }, [active]);
 
-  const next = () => setActive((a) => (a + 1) % media.length);
-  const prev = () => setActive((a) => (a - 1 + media.length) % media.length);
+  const hasMedia = media && media.length > 0;
+  const safeMedia = hasMedia
+    ? media
+    : [{
+        type: "image" as const,
+        src: "https://picsum.photos/800/500?grayscale",
+        alt: "placeholder",
+        thumbnail: "https://picsum.photos/200/120?grayscale"
+      }];
+
+  const current = safeMedia[active];
+
+  const next = () => setActive((a) => (a + 1) % safeMedia.length);
+  const prev = () => setActive((a) => (a - 1 + safeMedia.length) % safeMedia.length);
 
   const handleDragStart = (x: number) => {
     setDragging(true);
@@ -44,8 +56,6 @@ export default function MediaCarousel({ media, title }: MediaCarouselProps) {
     if (Math.abs(diff) > 50) diff > 0 ? next() : prev();
     setDragging(false);
   };
-
-  const current = media[active];
 
   return (
     <div className="media-carousel">
@@ -224,7 +234,7 @@ export default function MediaCarousel({ media, title }: MediaCarouselProps) {
       `}</style>
 
       {/* Zoom overlay */}
-      {isZoomed && current.type === "image" && (
+      {isZoomed && current && current.type === "image" && (
         <div className="zoom-overlay" onClick={() => setIsZoomed(false)}>
           <span className="zoom-close">ESC / CLOSE</span>
           <img src={current.src} alt={current.alt} />
@@ -234,13 +244,25 @@ export default function MediaCarousel({ media, title }: MediaCarouselProps) {
       {/* Main viewport */}
       <div
         className="carousel-main"
-        onClick={() => current.type === "image" && setIsZoomed(true)}
+        onClick={() => current && current.type === "image" && setIsZoomed(true)}
         onMouseDown={(e) => handleDragStart(e.clientX)}
         onMouseUp={(e) => handleDragEnd(e.clientX)}
         onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
         onTouchEnd={(e) => handleDragEnd(e.changedTouches[0].clientX)}
       >
-        {current.type === "image" ? (
+        {!current ? (
+          <div style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#666",
+            fontSize: "14px"
+          }}>
+            No media available
+          </div>
+        ) : current.type === "image" ? (
           <img src={current.src} alt={current.alt || title} draggable={false} />
         ) : (
           <video src={current.src} autoPlay muted loop playsInline />
@@ -250,20 +272,20 @@ export default function MediaCarousel({ media, title }: MediaCarouselProps) {
 
         {title && <div className="carousel-label">{title}</div>}
 
-        {media.length > 1 && (
+        {safeMedia.length > 1 && (
           <>
             <button className="carousel-nav prev" onClick={(e) => { e.stopPropagation(); prev(); }}>‹</button>
             <button className="carousel-nav next" onClick={(e) => { e.stopPropagation(); next(); }}>›</button>
           </>
         )}
 
-        <div className="carousel-counter">{active + 1} / {media.length}</div>
+        <div className="carousel-counter">{active + 1} / {safeMedia.length}</div>
       </div>
 
       {/* Thumbnails */}
-      {media.length > 1 && (
+      {safeMedia.length > 1 && (
         <div className="carousel-thumbs">
-          {media.map((m, i) => (
+          {safeMedia.map((m, i) => (
             <div
               key={i}
               className={`carousel-thumb ${i === active ? "active" : ""}`}

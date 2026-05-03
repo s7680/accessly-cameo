@@ -1,39 +1,20 @@
 "use client";
 
 import { use } from "react";
+import { useEffect, useState } from "react";
+import { getDropById, getExperiences } from "@/lib/db/listings";
 
 import MediaCarousel from "@/components/bid/MediaCarousel";
 import CreatorHeader from "@/components/bid/CreatorHeader";
 import ExperienceStorySection from "@/components/bid/ExperienceStorySection";
 import DropStorySection from "@/components/bid/DropStorySection";
+import DropDetails from "@/components/bid/DropDetails";
 import BidPanel from "@/components/bid/BidPanel";
 import Leaderboard from "@/components/bid/Leaderboard";
 import LiveChat from "@/components/bid/LiveChat";
 import type { BidEntry } from "@/components/bid/Leaderboard";
 import type { ChatMessage } from "@/components/bid/LiveChat";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_MEDIA = [
-  {
-    type: "image" as const,
-    src: "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=1200&q=80",
-    alt: "Cricket stadium",
-    thumbnail: "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=200&q=60",
-  },
-  {
-    type: "image" as const,
-    src: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=80",
-    alt: "Fine dining table",
-    thumbnail: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&q=60",
-  },
-  {
-    type: "image" as const,
-    src: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=1200&q=80",
-    alt: "Cricket equipment",
-    thumbnail: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=200&q=60",
-  },
-];
 
 const MOCK_LEADERBOARD: BidEntry[] = [
   { rank: 1, bidderName: "Arjun S.", amount: 25000, timestamp: new Date(Date.now() - 4 * 60_000) },
@@ -103,83 +84,69 @@ export default function BidPage({
   const type: "experience" | "drop" =
     resolvedSearch?.type === "drop" ? "drop" : "experience";
 
+  const [data, setData] = useState<any | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      if (type === "drop") {
+        const drop = await getDropById(resolvedParams?.id);
+        setData(drop);
+      } else {
+        const exps = await getExperiences();
+        const found = exps.find((e: any) => e.id === resolvedParams?.id);
+        setData(found);
+      }
+    }
+    load();
+  }, [resolvedParams?.id, type]);
+
+  if (!data) return <div style={{ padding: 40 }}>Loading...</div>;
+
+  const isExperience = type === "experience";
+  const safeId = (resolvedParams?.id ?? "NA").toUpperCase();
+
   const item = {
     type,
-    id: "1",
-    title:
-      type === "experience"
-        ? "Dinner with Virat Kohli"
-        : "Signed Virat Kohli Jersey",
-    creatorName: "Virat Kohli",
-    creatorHandle: "virat.kohli",
-    creatorAvatar: "https://i.pravatar.cc/150?img=68",
+    id: data.id,
+    title: data.item_name,
+    creatorName: data.creator?.name,
+    creatorHandle: data.creator?.instagram,
+    creatorAvatar: data.creator?.avatar,
     verified: true,
-    category: "Sports",
-    followers: 258_000_000,
-    rating: 5.0,
+    category: data.category,
+    followers: 0,
+    rating: 0,
     reviewCount: 0,
-    currentBid: type === "experience" ? 25000 : 12000,
-    startingBid: 5000,
-    minIncrement: 1000,
-    buyNowPrice: type === "experience" ? 75000 : 25000,
-    totalBids: 12,
-    reserveMet: true,
-    endTime: new Date("2026-12-31T23:59:59"),
-    pricingMode: "both" as const,
-    story:
-      type === "experience"
-        ? "A once-in-a-lifetime opportunity to share an intimate dinner with Virat Kohli — one of cricket's greatest batsmen and a global icon. Enjoy a private three-course meal, hear untold stories, and get exclusive access."
-        : "Own a rare, authenticated signed jersey from Virat Kohli. A premium collectible shipped securely to your home with full authenticity verification.",
-    highlights:
-      type === "experience"
-        ? [
-            "Private dinner with Virat Kohli",
-            "1+1 guest access",
-            "Live interaction + Q&A",
-            "Professional photography",
-            "Luxury venue experience",
-          ]
-        : [
-            "Official signed jersey",
-            "Verified authenticity certificate",
-            "Limited edition collectible",
-            "Secure packaging",
-            "Home delivery included",
-          ],
-    deliverables:
-      type === "experience"
-        ? [
-            { label: "Duration", detail: "3 Hours" },
-            { label: "Guests", detail: "Winner + 1" },
-            { label: "Photos", detail: "Professional Set" },
-            { label: "Cuisine", detail: "Fine Dining" },
-            { label: "Location", detail: "Mumbai, India" },
-          ]
-        : [
-            { label: "Item", detail: "Signed Jersey" },
-            { label: "Authentication", detail: "Verified Certificate" },
-            { label: "Shipping", detail: "Included" },
-            { label: "Condition", detail: "New" },
-          ],
-    tags: ["cricket", "sports", "dinner", "exclusive", "india", "celebrity", "once-in-a-lifetime"],
-    faq: [
-      {
-        question: "How will the winner be contacted?",
-        answer: "We reach out via email within 24 hours of auction close to coordinate all logistics.",
-      },
-      {
-        question: "Can the experience be gifted?",
-        answer: "Yes. The winner may transfer the experience to another person — just notify us at least 7 days in advance.",
-      },
-      {
-        question: "What if dates need to change?",
-        answer: "Fully reschedulable within 18 months at no cost if either party needs to adjust.",
-      },
-    ],
-  };
 
-  const isExperience = item.type === "experience";
-  const safeId = (resolvedParams?.id ?? "NA").toUpperCase();
+    currentBid: data.starting_bid || 0,
+    startingBid: data.starting_bid || 0,
+    minIncrement: 1000,
+    buyNowPrice: data.fixed_price || 0,
+    totalBids: 0,
+    reserveMet: false,
+
+    endTime: data.end_datetime ? new Date(data.end_datetime) : null,
+    pricingMode: data.pricing_mode || "both",
+
+    story: data.story || data.product_details || "",
+    highlights: [
+      data.condition && `Condition: ${data.condition}`,
+      data.authenticity && `Authenticity: ${data.authenticity}`,
+      data.shipping_details && `Shipping: ${data.shipping_details}`,
+    ].filter(Boolean),
+
+    deliverables: [
+      { label: "Condition", detail: data.condition || "-" },
+      { label: "Authenticity", detail: data.authenticity || "-" },
+      { label: "Shipping", detail: data.shipping_details || "-" },
+    ],
+
+    tags: ["drop"],
+    faq: Object.entries(data.faq || {}).map(([q, a]) => ({
+      question: q,
+      answer: a,
+    })),
+  };
 
   const bidPanelProps = {
     currentBid: item.currentBid,
@@ -276,13 +243,23 @@ export default function BidPage({
 
           {/* ── LEFT / main column ── */}
           <div className="bp-col-left">
-            <MediaCarousel media={MOCK_MEDIA} title={item.title} />
+            <MediaCarousel
+              media={(data.media || [])
+                .map((m: any) => ({
+                  type: m.type || "image",
+                  src: m.src || m.url || null,
+                  alt: m.alt || item.title,
+                  thumbnail: m.thumbnail || m.src || m.url || null,
+                }))
+                .filter((m: any) => m.src)}
+              title={item.title}
+            />
 
             {isExperience ? (
               <>
                 <CreatorHeader
                   name={item.creatorName}
-                  handle={item.creatorHandle}
+                  handle={data.creator?.instagram || ""}
                   avatar={item.creatorAvatar}
                   verified={item.verified}
                   category="Experience"
@@ -306,9 +283,9 @@ export default function BidPage({
             ) : (
               <>
                 <CreatorHeader
-                  name={item.creatorName}
-                  handle={item.creatorHandle}
-                  avatar={item.creatorAvatar}
+                  name={data.creator?.name}
+                  handle={data.creator?.instagram || ""}
+                  avatar={data.creator?.avatar}
                   verified={item.verified}
                   category="Drop"
                   followers={item.followers}
@@ -320,13 +297,26 @@ export default function BidPage({
                   isFollowing={false}
                   type={item.type}
                 />
-                <DropStorySection
-                  type={item.type}
-                  description={item.story}
-                  highlights={item.highlights}
-                  deliverables={item.deliverables}
-                  tags={[...item.tags, "drop"]}
-                  faq={item.faq.map(f => ({ q: f.question, a: f.answer }))}
+                <DropDetails
+                  itemName={data.item_name}
+                  category={data.category}
+                  createdAt={data.created_at}
+
+                  story={data.story}
+                  instagramLink={data.instagram_link}
+
+                  pricingMode={data.pricing_mode}
+                  startDateTime={data.start_datetime}
+                  endDateTime={data.end_datetime}
+                  startingBid={data.starting_bid}
+                  fixedPrice={data.fixed_price}
+
+                  condition={data.condition}
+                  productDetails={data.product_details}
+                  shippingDetails={data.shipping_details}
+                  authenticity={data.authenticity}
+
+                  faq={data.faq}
                 />
               </>
             )}

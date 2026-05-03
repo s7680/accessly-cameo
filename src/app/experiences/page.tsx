@@ -1,51 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ExperienceCard from "@/components/ExperienceCard";
-
-// ── Types ──────────────────────────────────────────────────────────────────────
-export interface Experience {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  image: string;
-  creatorName: string;
-  creatorAvatar: string;
-  price: number;
-  availableOn: string;
-}
-
-// ── Mock Data ──────────────────────────────────────────────────────────────────
-const allExperiences: Experience[] = [
-  { id: "1",  title: "1-on-1 Meet with Virat Kohli",         description: "Spend 30 minutes with the legend himself at a private lounge in Mumbai.", category: "Meet & Greet",          image: "virat-meet",    creatorName: "Virat Kohli",      creatorAvatar: "virat",    price: 250000, availableOn: "2025-08-10" },
-  { id: "2",  title: "Dinner with Shah Rukh Khan",           description: "An intimate dinner experience with SRK at his favourite Delhi restaurant.", category: "Dinner",                image: "srk-dinner",    creatorName: "Shah Rukh Khan",   creatorAvatar: "srk",      price: 500000, availableOn: "2025-09-01" },
-  { id: "3",  title: "Cricket Nets Session with MS Dhoni",   description: "Train with Mahi for an hour at a private ground in Ranchi.",              category: "Sports Experience",     image: "dhoni-nets",    creatorName: "MS Dhoni",         creatorAvatar: "dhoni",    price: 350000, availableOn: "2025-08-22" },
-  { id: "4",  title: "Behind-the-Scenes with Deepika",       description: "Visit a live Bollywood shoot set and spend time with Deepika Padukone.",   category: "Bollywood Experience",  image: "deepika-bts",   creatorName: "Deepika Padukone", creatorAvatar: "deepika",  price: 400000, availableOn: "2025-10-05" },
-  { id: "5",  title: "Tea with a Senior Minister",           description: "A curated discussion on policy and leadership over chai in New Delhi.",     category: "Politics Interaction",  image: "minister-tea",  creatorName: "PoliticaVault",    creatorAvatar: "pol1",     price: 150000, availableOn: "2025-08-30" },
-  { id: "6",  title: "Badminton Rally with PV Sindhu",       description: "Play a friendly match and get coaching tips from the Olympic champion.",    category: "Sports Experience",     image: "sindhu-rally",  creatorName: "PV Sindhu",        creatorAvatar: "sindhu",   price: 200000, availableOn: "2025-09-15" },
-  { id: "7",  title: "Lunch with Ranveer Singh",             description: "A high-energy lunch with Bollywood's most vibrant star in Mumbai.",         category: "Dinner",                image: "ranveer-lunch", creatorName: "Ranveer Singh",    creatorAvatar: "ranveer",  price: 375000, availableOn: "2025-11-01" },
-  { id: "8",  title: "Fan Meet with Alia Bhatt",             description: "An exclusive meet-and-greet with Alia at her production office.",           category: "Meet & Greet",          image: "alia-meet",     creatorName: "Alia Bhatt",       creatorAvatar: "alia",     price: 175000, availableOn: "2025-09-20" },
-  { id: "9",  title: "Javelin Throw Masterclass — Neeraj",   description: "Learn technique and train side-by-side with the Olympic gold medallist.",   category: "Sports Experience",     image: "neeraj-throw",  creatorName: "Neeraj Chopra",    creatorAvatar: "neeraj",   price: 300000, availableOn: "2025-10-12" },
-  { id: "10", title: "Script Reading with Karan Johar",      description: "Sit in on a real script reading session and get insider Bollywood access.", category: "Bollywood Experience",  image: "karan-script",  creatorName: "Karan Johar",      creatorAvatar: "karan",    price: 225000, availableOn: "2025-12-01" },
-  { id: "11", title: "Roundtable with Young MP",             description: "Engage in a candid roundtable on governance and India's future.",            category: "Politics Interaction",  image: "mp-roundtable", creatorName: "YouthPol India",   creatorAvatar: "pol2",     price: 80000,  availableOn: "2025-08-18" },
-  { id: "12", title: "Private Dinner with Sachin Tendulkar", description: "The ultimate sporting dinner — an evening with the Master Blaster.",        category: "Dinner",                image: "sachin-dinner", creatorName: "Sachin Tendulkar", creatorAvatar: "sachin",   price: 750000, availableOn: "2025-09-28" },
-  { id: "13", title: "Bollywood Dance Class with Madhuri",   description: "Learn Madhuri Dixit's iconic moves in a private studio session.",           category: "Bollywood Experience",  image: "madhuri-dance", creatorName: "Madhuri Dixit",    creatorAvatar: "madhuri",  price: 280000, availableOn: "2025-10-20" },
-  { id: "14", title: "Coffee Chat with Rohit Sharma",        description: "A relaxed coffee session with the Indian cricket captain.",                  category: "Meet & Greet",          image: "rohit-coffee",  creatorName: "Rohit Sharma",     creatorAvatar: "rohit",    price: 195000, availableOn: "2025-08-25" },
-  { id: "15", title: "Constituency Walk with MP",            description: "Join a sitting MP on a constituency tour and witness democracy up close.",   category: "Politics Interaction",  image: "mp-walk",       creatorName: "PoliticaVault",    creatorAvatar: "pol3",     price: 60000,  availableOn: "2025-09-05" },
-  { id: "16", title: "Film Premiere Access with Hrithik",    description: "Walk the red carpet and attend a premiere alongside Hrithik Roshan.",        category: "Bollywood Experience",  image: "hrithik-prem",  creatorName: "Hrithik Roshan",   creatorAvatar: "hrithik",  price: 450000, availableOn: "2025-11-15" },
-];
+import { getExperiences } from "@/lib/db/listings";
 
 const ALL_LABEL = "All";
 const categories = [ALL_LABEL, "Meet & Greet", "Dinner", "Sports Experience", "Bollywood Experience", "Politics Interaction"];
 
-const categoryCounts = categories.reduce((acc, cat) => {
-  acc[cat] =
-    cat === ALL_LABEL
-      ? allExperiences.length
-      : allExperiences.filter((e) => e.category === cat).length;
-  return acc;
-}, {} as Record<string, number>);
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function ExperiencesPage() {
@@ -54,23 +15,40 @@ export default function ExperiencesPage() {
   const [sidebarSearch, setSidebarSearch]   = useState("");
   const [sort, setSort]                     = useState("upcoming");
   const [lotType, setLotType] = useState<"all" | "auction" | "buyNow">("all");
+  const [allExperiences, setAllExperiences] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadExperiences() {
+      const data = await getExperiences();
+      setAllExperiences(data);
+    }
+    loadExperiences();
+  }, []);
+
+  const categoryCounts = categories.reduce((acc, cat) => {
+    acc[cat] =
+      cat === ALL_LABEL
+        ? allExperiences.length
+        : allExperiences.filter((e) => e.category === cat).length;
+    return acc;
+  }, {} as Record<string, number>);
 
   const filtered = allExperiences.filter((e) => {
     const matchCat = active === ALL_LABEL || e.category === active;
 
     const matchLot =
       lotType === "all" ||
-      (lotType === "auction" && !e.price) ||
-      (lotType === "buyNow" && !!e.price);
+      (lotType === "auction" && !e.fixed_price) ||
+      (lotType === "buyNow" && !!e.fixed_price);
 
     return matchCat && matchLot;
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    if (sort === "upcoming")       return new Date(a.availableOn).getTime() - new Date(b.availableOn).getTime();
-    if (sort === "popular")        return parseInt(b.id) - parseInt(a.id);
-    if (sort === "price_low")      return a.price - b.price;
-    if (sort === "price_high")     return b.price - a.price;
+    if (sort === "upcoming")       return new Date(a.experience_date || a.start_date).getTime() - new Date(b.experience_date || b.start_date).getTime();
+    if (sort === "popular")        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (sort === "price_low")      return (a.fixed_price || 0) - (b.fixed_price || 0);
+    if (sort === "price_high")     return (b.fixed_price || 0) - (a.fixed_price || 0);
     return 0;
   });
 
@@ -181,20 +159,20 @@ export default function ExperiencesPage() {
                   key={exp.id}
                   experience={{
                     id: exp.id,
-                    title: exp.title,
-                    description: exp.description,
+                    title: exp.about_experience,
+                    description: exp.fan_benefits || "",
                     category: exp.category,
-                    image: exp.image,
-                    creatorName: exp.creatorName,
-                    creatorAvatar: exp.creatorAvatar,
-                    creatorId: exp.creatorName,
-                    location: "Mumbai",
-                    date: exp.availableOn,
-                    duration: "2 hours",
+                    image: exp.display_image,
+                    creatorName: exp.display_name,
+                    creatorAvatar: exp.display_image || "",
+                    creatorId: exp.creator_id,
+                    location: exp.location,
+                    date: exp.experience_date || exp.start_date,
+                    duration: exp.duration_minutes ? `${exp.duration_minutes} mins` : "",
                     pricingMode: "buyNow",
-                    capacity: 10,
-                    spotsLeft: 3,
-                    buyNowPrice: exp.price,
+                    capacity: exp.guests,
+                    spotsLeft: exp.guests,
+                    buyNowPrice: exp.fixed_price || 0,
                     currentBid: null,
                     endsIn: null,
                     tags: [exp.category],

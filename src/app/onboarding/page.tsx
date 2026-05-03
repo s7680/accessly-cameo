@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { createVideoForm } from "@/lib/db/videos";
+import { createListing } from "@/lib/db/listings";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type OfferType = "video" | "drops" | "experiences";
@@ -27,6 +28,7 @@ interface FormState {
   // Step 4 – drops / experiences
   media: MediaItem[];
   displayImage: File | null;
+  displayName: string;
   story: string;
   pricingMode: PricingMode;
   itemName: string;
@@ -125,7 +127,7 @@ export default function OnboardingPage() {
     selectedType: null,
     category: "",
     price: "", deliveryTime: "", instructions: "",
-    media: [], displayImage: null, story: "", pricingMode: "bid",
+    media: [], displayImage: null, displayName: "", story: "", pricingMode: "bid",
     itemName: "", startingBid: "", startDate: "", startTime: "",
     endDate: "", endTime: "", fixedPrice: "",
 
@@ -255,18 +257,77 @@ export default function OnboardingPage() {
         ? form.media.map((m) => m.file)
         : [];
 
-    await createVideoForm({
-      type: form.selectedType as string,
-      category: form.category,
-      price: Number(form.price) || 0,
-      delivery_time: form.deliveryTime,
-      language: form.language,
-      max_duration: form.maxDuration,
-      occasions: form.occasions ? form.occasions.split(",") : [],
-      files,
-      instructions: form.instructions,
-      displayImage: form.displayImage,
-    });
+    if (form.selectedType === "video") {
+      await createVideoForm({
+        type: form.selectedType as string,
+        category: form.category,
+        price: Number(form.price) || 0,
+        delivery_time: form.deliveryTime,
+        language: form.language,
+        max_duration: form.maxDuration,
+        occasions: form.occasions ? form.occasions.split(",") : [],
+        files,
+        instructions: form.instructions,
+        displayImage: form.displayImage,
+      });
+    }
+
+    if (form.selectedType === "drops" || form.selectedType === "experiences") {
+      // Normalize FAQ handling
+      const dropFaqParts = form.dropFaq ? form.dropFaq.split("||") : [];
+      const expFaqParts = form.experienceFaq ? form.experienceFaq.split("||") : [];
+      await createListing({
+        type: form.selectedType === "drops" ? "drop" : form.selectedType === "experiences" ? "experience" : form.selectedType,
+        category: form.category,
+
+        displayName: form.displayName,
+        displayImage: form.displayImage,
+        media: form.media.map((m) => m.file),
+
+        story: form.story,
+        instagramLink: form.promoInstagramLink,
+
+        pricingMode: form.pricingMode,
+        startDateTime: form.startDate && form.startTime ? `${form.startDate} ${form.startTime}` : undefined,
+        endDateTime: form.endDate && form.endTime ? `${form.endDate} ${form.endTime}` : undefined,
+
+        startingBid: form.startingBid ? Number(form.startingBid) : undefined,
+        fixedPrice: form.fixedPrice ? Number(form.fixedPrice) : undefined,
+
+        itemName: form.itemName,
+        condition: form.condition,
+        authenticity: form.authenticity,
+        shippingDetails: form.shippingDetails,
+        productDetails: form.specifications,
+
+        faq: form.selectedType === "drops"
+          ? {
+              authenticity: dropFaqParts[0] || "",
+              shipping: dropFaqParts[1] || "",
+              returns: dropFaqParts[2] || "",
+              extra: dropFaqParts[3] || "",
+            }
+          : {
+              cancel: expFaqParts[0] || "",
+              reschedule: expFaqParts[1] || "",
+              refund: expFaqParts[2] || "",
+            },
+
+        aboutExperience: form.story,
+        fanBenefits: form.fanBenefits,
+        durationType: form.experienceDurationType,
+        experienceDate: form.experienceDate,
+        startTime: form.experienceStartTime,
+        durationMinutes: form.experienceMinutes ? Number(form.experienceMinutes) : undefined,
+        startDate: form.experienceStartDate,
+        endDate: form.experienceEndDate,
+        guests: form.guests ? Number(form.guests) : undefined,
+        location: form.location,
+        photosIncluded: form.photosIncluded,
+        autographIncluded: form.autographIncluded,
+        cuisine: form.cuisine,
+      });
+    }
 
     setLoading(false);
     setSubmitted(true);
@@ -703,6 +764,38 @@ export default function OnboardingPage() {
             {/* ──────────── DROPS / EXPERIENCES FORM ──────────── */}
             {(form.selectedType === "drops" || form.selectedType === "experiences") && (
               <>
+                <div className="ob-field">
+                  <label className="ob-label">Display name</label>
+                  <input
+                    className="ob-input"
+                    placeholder="Enter title for your card"
+                    value={form.displayName}
+                    onChange={(e) => set("displayName", e.target.value)}
+                  />
+                </div>
+
+                <div className="ob-field">
+                  <label className="ob-label">Upload your card display image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      set("displayImage", file);
+                    }}
+                  />
+
+                  {form.displayImage && (
+                    <div style={{ marginTop: 10 }}>
+                      <img
+                        src={URL.createObjectURL(form.displayImage)}
+                        alt="preview"
+                        style={{ width: 80, height: 80, borderRadius: 8, objectFit: "cover" }}
+                      />
+                    </div>
+                  )}
+                </div>
                 {/* Media upload */}
                 <div className="ob-field">
                   <label className="ob-label">
@@ -724,7 +817,7 @@ export default function OnboardingPage() {
                   <input
                     ref={fileRef}
                     type="file"
-                    accept="video/*"
+                  accept="image/*,video/*"
                     multiple
                     style={{ display: "none" }}
                     onChange={handleFileChange}
@@ -791,18 +884,6 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                {/* Item name (always shown) */}
-                <div className="ob-field">
-                  <label className="ob-label">Item name</label>
-                  <input
-                    className={`ob-input ${errors.itemName ? "ob-input--error" : ""}`}
-                    type="text"
-                    placeholder={form.selectedType === "drops" ? "e.g. 2023 IPL Final Jersey" : "e.g. Private Dinner in Mumbai"}
-                    value={form.itemName}
-                    onChange={(e) => { set("itemName", e.target.value); clearError("itemName"); }}
-                  />
-                  <FieldError msg={errors.itemName} />
-                </div>
 
                 {/* BID fields */}
                 {(form.pricingMode === "bid" || form.pricingMode === "both") && (
@@ -895,6 +976,18 @@ export default function OnboardingPage() {
                   </div>
                 )}
                 {/* Drops extras */}
+                {/* Item name (always shown) */}
+                <div className="ob-field">
+                  <label className="ob-label">Item name</label>
+                  <input
+                    className={`ob-input ${errors.itemName ? "ob-input--error" : ""}`}
+                    type="text"
+                    placeholder={form.selectedType === "drops" ? "e.g. 2023 IPL Final Jersey" : "e.g. Private Dinner in Mumbai"}
+                    value={form.itemName}
+                    onChange={(e) => { set("itemName", e.target.value); clearError("itemName"); }}
+                  />
+                  <FieldError msg={errors.itemName} />
+                </div>
                 {form.selectedType === "drops" && (
                   <div className="ob-sub-section">
                     <p className="ob-sub-section-label">Item details</p>
@@ -1028,6 +1121,18 @@ export default function OnboardingPage() {
 
                 {form.selectedType === "experiences" && (
                   <>
+                    {/* Item name (always shown) */}
+                    <div className="ob-field">
+                      <label className="ob-label">Item name</label>
+                      <input
+                        className={`ob-input ${errors.itemName ? "ob-input--error" : ""}`}
+                        type="text"
+                        placeholder={form.selectedType === "drops" ? "e.g. 2023 IPL Final Jersey" : "e.g. Private Dinner in Mumbai"}
+                        value={form.itemName}
+                        onChange={(e) => { set("itemName", e.target.value); clearError("itemName"); }}
+                      />
+                      <FieldError msg={errors.itemName} />
+                    </div>
                     {/* About */}
                     <div className="ob-sub-section">
                       <p className="ob-sub-section-label">About Experience</p>

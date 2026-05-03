@@ -88,7 +88,12 @@ export default function VideosPage() {
             >
               <div className="vp-category-avatar">
                 <img
-                  src={`https://picsum.photos/seed/${cat}/300`}
+                  src={
+                    cat === ALL_LABEL
+                      ? "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&h=300&fit=crop"
+                      : creators.find((c) => c.category === cat)?.display_image ||
+                        "https://ui-avatars.com/api/?name=" + encodeURIComponent(cat) + "&background=1e1e1e&color=aaa&size=200"
+                  }
                   alt={cat}
                   style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
                 />
