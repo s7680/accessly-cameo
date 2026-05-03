@@ -159,17 +159,29 @@ export default function ExperiencesPage() {
                   key={exp.id}
                   experience={{
                     id: exp.id,
-                    title: exp.about_experience,
-                    description: exp.fan_benefits || "",
+                    title: exp.display_name,
+                    description: exp.about_experience || "",
                     category: exp.category,
                     image: exp.display_image,
+
+                    // core fields (as per requirement)
+                    name: exp.display_name,
+                    story: exp.about_experience,
+                    date: exp.experience_date || exp.start_datetime,
+                    duration: exp.duration ? `${exp.duration} mins` : "",
+
                     creatorName: exp.display_name,
                     creatorAvatar: exp.display_image || "",
                     creatorId: exp.creator_id,
                     location: exp.location,
-                    date: exp.experience_date || exp.start_date,
-                    duration: exp.duration_minutes ? `${exp.duration_minutes} mins` : "",
-                    pricingMode: "buyNow",
+                    pricingMode:
+                      exp.pricing_mode === "bid"
+                        ? "auction"
+                        : exp.pricing_mode === "fixed"
+                        ? "buyNow"
+                        : exp.pricing_mode === "hybrid"
+                        ? "both"
+                        : "buyNow",
                     capacity: exp.guests,
                     spotsLeft: exp.guests,
                     buyNowPrice: exp.fixed_price || 0,

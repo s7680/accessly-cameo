@@ -24,34 +24,6 @@ function formatFollowers(n: number): string {
   return String(n);
 }
 
-function useCountdown(endTime: Date | null) {
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const time = endTime ? new Date(endTime).getTime() : null;
-
-  if (!time || isNaN(time)) {
-    return { h: 0, m: 0, s: 0, isUrgent: false, expired: true };
-  }
-
-  const diff = time - now;
-
-  if (diff <= 0) {
-    return { h: 0, m: 0, s: 0, isUrgent: false, expired: true };
-  }
-
-  const h = Math.floor(diff / 3_600_000);
-  const m = Math.floor((diff % 3_600_000) / 60_000);
-  const s = Math.floor((diff % 60_000) / 1_000);
-  const isUrgent = diff < 3_600_000;
-
-  return { h, m, s, isUrgent, expired: false };
-}
-
 export default function CreatorHeader({
   type,
   name,
@@ -68,7 +40,6 @@ export default function CreatorHeader({
   isFollowing: initialFollow = false,
 }: CreatorHeaderProps) {
   const [following, setFollowing] = useState(initialFollow);
-  const timer = useCountdown(endTime);
 
   const [mounted, setMounted] = useState(false);
 
@@ -320,7 +291,7 @@ export default function CreatorHeader({
             </span>
             {verified && <span className="ch-verified">✓ Verified</span>}
           </div>
-          <div className="ch-handle">@<span>{handle}</span></div>
+          <div className="ch-handle"><span>{handle}</span></div>
           <div className="ch-stats">
             <div className="ch-stat">
               <strong>{formatFollowers(followers)}</strong> followers
@@ -345,30 +316,9 @@ export default function CreatorHeader({
         </button>
       </div>
 
-      {/* Listing title + timer */}
+      {/* Listing title */}
       <div className="ch-listing">
         <div className="ch-listing-title">{listingTitle}</div>
-        <div className={`ch-timer ${timer.isUrgent ? "urgent" : ""}`}>
-          {!mounted ? null : (
-            <>
-              <span className="ch-timer-label">Ends in</span>
-              <div className="ch-timer-seg">
-                <span className="ch-timer-num">{pad(timer.h)}</span>
-                <span className="ch-timer-unit">hrs</span>
-              </div>
-              <span className="ch-timer-colon">:</span>
-              <div className="ch-timer-seg">
-                <span className="ch-timer-num">{pad(timer.m)}</span>
-                <span className="ch-timer-unit">min</span>
-              </div>
-              <span className="ch-timer-colon">:</span>
-              <div className="ch-timer-seg">
-                <span className="ch-timer-num">{pad(timer.s)}</span>
-                <span className="ch-timer-unit">sec</span>
-              </div>
-            </>
-          )}
-        </div>
       </div>
     </header>
   );

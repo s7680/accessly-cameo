@@ -6,7 +6,7 @@ import { getDropById, getExperiences } from "@/lib/db/listings";
 
 import MediaCarousel from "@/components/bid/MediaCarousel";
 import CreatorHeader from "@/components/bid/CreatorHeader";
-import ExperienceStorySection from "@/components/bid/ExperienceStorySection";
+import ExperienceDetails from "@/components/bid/ExperienceDetails";
 import DropStorySection from "@/components/bid/DropStorySection";
 import DropDetails from "@/components/bid/DropDetails";
 import BidPanel from "@/components/bid/BidPanel";
@@ -14,61 +14,11 @@ import Leaderboard from "@/components/bid/Leaderboard";
 import LiveChat from "@/components/bid/LiveChat";
 import type { BidEntry } from "@/components/bid/Leaderboard";
 import type { ChatMessage } from "@/components/bid/LiveChat";
+import { fetchMessages, sendMessage, subscribeToChat } from "@/lib/db/chat";
+import { placeBid, getHighestBid, subscribeToBids, getLeaderboard } from "@/lib/db/bids";
 
 
-const MOCK_LEADERBOARD: BidEntry[] = [
-  { rank: 1, bidderName: "Arjun S.", amount: 25000, timestamp: new Date(Date.now() - 4 * 60_000) },
-  { rank: 2, bidderName: "Priya M.", amount: 22000, timestamp: new Date(Date.now() - 18 * 60_000), isCurrentUser: true },
-  { rank: 3, bidderName: "Anonymous", amount: 19000, timestamp: new Date(Date.now() - 35 * 60_000), isAnonymous: true },
-  { rank: 4, bidderName: "Rohit V.", amount: 16000, timestamp: new Date(Date.now() - 52 * 60_000) },
-  { rank: 5, bidderName: "Sneha K.", amount: 13000, timestamp: new Date(Date.now() - 74 * 60_000) },
-  { rank: 6, bidderName: "Dev R.", amount: 10000, timestamp: new Date(Date.now() - 98 * 60_000) },
-  { rank: 7, bidderName: "Ananya P.", amount: 8000, timestamp: new Date(Date.now() - 120 * 60_000) },
-];
 
-const MOCK_CHAT: ChatMessage[] = [
-  {
-    id: "sys-1",
-    authorName: "System",
-    text: "Auction is now live! Bidding ends in 5 hours.",
-    timestamp: new Date(Date.now() - 300 * 60_000),
-    type: "system",
-  },
-  {
-    id: "msg-1",
-    authorName: "Rohit V.",
-    text: "This is incredible. Never thought I'd have a shot at this 🙏",
-    timestamp: new Date(Date.now() - 120 * 60_000),
-    type: "message",
-  },
-  {
-    id: "msg-2",
-    authorName: "Sneha K.",
-    text: "Already placed my bid. Fingers crossed 🤞",
-    timestamp: new Date(Date.now() - 90 * 60_000),
-    type: "message",
-  },
-  {
-    id: "bid-1",
-    authorName: "Arjun S.",
-    text: "",
-    bidAmount: 25000,
-    timestamp: new Date(Date.now() - 4 * 60_000),
-    type: "bid_event",
-  },
-  {
-    id: "msg-3",
-    authorName: "Dev R.",
-    text: "₹25,000 already? This is getting serious 🔥",
-    timestamp: new Date(Date.now() - 2 * 60_000),
-    type: "message",
-  },
-];
-
-const handleBid = async (amount: number) => {
-  await new Promise((r) => setTimeout(r, 800));
-  console.log("Bid placed:", amount);
-};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -100,6 +50,58 @@ export default function BidPage({
     load();
   }, [resolvedParams?.id, type]);
 
+  const initialMessages: ChatMessage[] = [];
+  const [messages, setMessages] = useState(initialMessages);
+
+  useEffect(() => {
+    if (!data?.id) return;
+
+    async function loadMessages() {
+      const msgs = await fetchMessages(data.id, type);
+      setMessages(msgs);
+    }
+
+    loadMessages();
+
+    const unsubscribe = subscribeToChat(data.id, type, (msg) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+
+    return () => unsubscribe();
+  }, [data?.id, type]);
+
+  const [currentBid, setCurrentBid] = useState<number>(data?.starting_bid || 0);
+  const [leaderboard, setLeaderboard] = useState<BidEntry[]>([]);
+
+  useEffect(() => {
+    if (!data?.id) return;
+    (async () => {
+      const highest = await getHighestBid(data.id, type);
+      setCurrentBid(highest || data.starting_bid || 0);
+    })();
+  }, [data?.id, type]);
+
+  useEffect(() => {
+    if (!data?.id) return;
+    const unsubscribe = subscribeToBids(data.id, type, async (b) => {
+      setCurrentBid((prev) => Math.max(prev, b.amount));
+      const lb = await getLeaderboard(data.id, type);
+      setLeaderboard(lb);
+    });
+    return () => unsubscribe();
+  }, [data?.id, type]);
+
+  useEffect(() => {
+    if (!data?.id) return;
+
+    async function loadLeaderboard() {
+      const lb = await getLeaderboard(data.id, type);
+      setLeaderboard(lb);
+    }
+
+    loadLeaderboard();
+  }, [data?.id, type]);
+
   if (!data) return <div style={{ padding: 40 }}>Loading...</div>;
 
   const isExperience = type === "experience";
@@ -124,14 +126,15 @@ export default function BidPage({
     rating: 0,
     reviewCount: 0,
 
-    currentBid: data.starting_bid || 0,
+    startTime: data.start_datetime ? new Date(data.start_datetime) : null,
+    endTime: data.end_datetime ? new Date(data.end_datetime) : null,
+    currentBid: currentBid,
     startingBid: data.starting_bid || 0,
     minIncrement: 1000,
     buyNowPrice: data.fixed_price || 0,
     totalBids: 0,
     reserveMet: false,
 
-    endTime: data.end_datetime ? new Date(data.end_datetime) : null,
     pricingMode: data.pricing_mode || "both",
 
     story: data.story || data.product_details || "",
@@ -152,23 +155,32 @@ export default function BidPage({
   };
 
   const bidPanelProps = {
-    currentBid: item.currentBid,
+    currentBid: currentBid,
     startingBid: item.startingBid,
     minIncrement: item.minIncrement,
     totalBids: item.totalBids,
+    startTime: data.start_datetime,
+    endTime: data.end_datetime,
     currency: "INR" as const,
     reserveMet: item.reserveMet,
-    onBid: handleBid,
+    onBid: async (amount: number) => {
+      await placeBid(data.id, type, amount);
+      const latest = await getHighestBid(data.id, type);
+      setCurrentBid(latest);
+    },
     isWatchlisted: false,
     type: item.type,
   };
 
+
   const liveChatProps = {
-    messages: MOCK_CHAT,
+    messages,
     currentUserName: "You",
     currency: "INR" as const,
-    viewerCount: 3_847,
-    onSend: (text: string) => console.log("Chat:", text),
+    viewerCount: 3847,
+    onSend: async (text: string) => {
+      await sendMessage(data.id, type, text);
+    },
   };
 
   return (
@@ -261,9 +273,9 @@ export default function BidPage({
             {isExperience ? (
               <>
                 <CreatorHeader
-                  name={item.creatorName}
-                  handle={data.creator?.instagram || ""}
-                  avatar={item.creatorAvatar}
+                  name={data.display_name}
+                  handle=""
+                  avatar={data.display_image}
                   verified={item.verified}
                   category="Experience"
                   followers={item.followers}
@@ -271,23 +283,35 @@ export default function BidPage({
                   reviewCount={item.reviewCount}
                   listingTitle={item.title}
                   listingId={`#EXP-${safeId}`}
+                  startTime={item.startTime}
                   endTime={item.endTime}
                   isFollowing={false}
                   type={item.type}
                 />
-                <ExperienceStorySection
-                  description={item.story}
-                  highlights={item.highlights}
-                  deliverables={item.deliverables}
-                  tags={[...item.tags, "experience"]}
-                  faq={item.faq}
+                <ExperienceDetails
+                  name={data.display_name}
+                  story={data.about_experience}
+                  image={data.display_image}
+                  date={data.experience_date || data.start_datetime}
+                  duration={data.duration ? `${data.duration} mins` : ""}
+                  location={data.location}
+                  benefits={data.fan_benefits}
+                  capacity={data.guests}
+                  cuisine={data.cuisine}
+                  photosIncluded={data.photos_included}
+                  autographIncluded={data.autograph_included}
+                  instagramLink={data.instagram_link}
+                  pricingMode={data.pricing_mode}
+                  startingBid={data.starting_bid}
+                  fixedPrice={data.fixed_price}
+                  faq={data.faq}
                 />
               </>
             ) : (
               <>
                 <CreatorHeader
                   name={data.creator?.name}
-                  handle={data.creator?.instagram || ""}
+                  handle=""
                   avatar={data.creator?.avatar}
                   verified={item.verified}
                   category="Drop"
@@ -296,6 +320,7 @@ export default function BidPage({
                   reviewCount={item.reviewCount}
                   listingTitle={item.title}
                   listingId={`#DROP-${safeId}`}
+                  startTime={item.startTime}
                   endTime={item.endTime}
                   isFollowing={false}
                   type={item.type}
@@ -327,10 +352,8 @@ export default function BidPage({
 
           {/* ── RIGHT / sidebar — desktop only ── */}
           <aside className="bp-col-right">
-            <div style={{ maxHeight: "80vh", overflowY: "auto" }}>
-              <BidPanel {...bidPanelProps} />
-            </div>
-            <Leaderboard entries={MOCK_LEADERBOARD} currency="INR" maxVisible={5} />
+            <BidPanel {...bidPanelProps} />
+            <Leaderboard entries={leaderboard} currency="INR" maxVisible={5} />
             {/* Render LiveChat directly — it owns its height: 480px internally */}
             <LiveChat {...liveChatProps} />
           </aside>
@@ -339,10 +362,8 @@ export default function BidPage({
 
         {/* ── Mobile-only extras ── */}
         <div className="bp-mobile-extras">
-          <div style={{ maxHeight: "80vh", overflowY: "auto" }}>
-            <BidPanel {...bidPanelProps} />
-          </div>
-          <Leaderboard entries={MOCK_LEADERBOARD} currency="INR" maxVisible={5} />
+          <BidPanel {...bidPanelProps} />
+          <Leaderboard entries={leaderboard} currency="INR" maxVisible={5} />
           {/* Same here — no wrapper, LiveChat manages its own height */}
           <LiveChat {...liveChatProps} />
         </div>

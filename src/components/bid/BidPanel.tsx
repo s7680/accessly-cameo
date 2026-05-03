@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useCountdown } from "@/lib/hooks/useCountdown";
 
 interface BidPanelProps {
   type: "experience" | "drop";
@@ -13,6 +14,8 @@ interface BidPanelProps {
   onBid: (amount: number) => Promise<void> | void;
   onWatchlist?: () => void;
   isWatchlisted?: boolean;
+  startTime?: string | Date | null;
+  endTime?: string | Date | null;
 }
 
 function formatMoney(n: number, currency = "USD"): string {
@@ -23,7 +26,7 @@ function formatMoney(n: number, currency = "USD"): string {
   }).format(n);
 }
 
-const QUICK_INCREMENTS = [1, 5, 10, 25, 50];
+const QUICK_INCREMENTS = [1, 2, 5, 10];
 
 export default function BidPanel({
   type,
@@ -31,27 +34,46 @@ export default function BidPanel({
   startingBid,
   minIncrement,
   totalBids,
+  startTime,
+  endTime,
   currency = "USD",
-  reserveMet = false,
   onBid,
   onWatchlist,
   isWatchlisted: initWatched = false,
 }: BidPanelProps) {
-  const minNext = currentBid + minIncrement;
-  const [bidAmount, setBidAmount] = useState(minNext);
+  const effectiveIncrement = 500;
+  const minNext = currentBid + effectiveIncrement;
+  const [bidAmount, setBidAmount] = useState(currentBid + effectiveIncrement);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [statusMsg, setStatusMsg] = useState("");
   const [watched, setWatched] = useState(initWatched);
 
-  const handleBidChange = (val: number) => {
-    setBidAmount(Math.max(minNext, val));
+  useEffect(() => {
+    setBidAmount(currentBid + effectiveIncrement);
+  }, [currentBid]);
+
+  const handleBidChange = (val: number | "") => {
+    if (val === "") {
+      setBidAmount(0);
+      return;
+    }
+    setBidAmount(val);
   };
 
   const handleSubmit = async () => {
-    if (bidAmount < minNext) {
+    // Minimum rule: must be higher than current bid
+    if (bidAmount <= currentBid) {
       setStatus("error");
-      setStatusMsg(`Minimum bid is ${formatMoney(minNext, currency)}`);
+      setStatusMsg(`Bid must be higher than current bid ${formatMoney(currentBid, currency)}`);
+      return;
+    }
+
+    // Anti-manipulation cap: prevent absurd jumps
+    const MAX_MULTIPLIER = 5;
+    if (bidAmount > currentBid * MAX_MULTIPLIER) {
+      setStatus("error");
+      setStatusMsg(`Bid too high. Maximum allowed is ${formatMoney(currentBid * MAX_MULTIPLIER, currency)}`);
       return;
     }
     setLoading(true);
@@ -67,13 +89,21 @@ export default function BidPanel({
     } finally {
       setLoading(false);
     }
-    
   };
 
   const handleWatch = () => {
     setWatched((w) => !w);
     onWatchlist?.();
   };
+
+  const timer = useCountdown(startTime || null, endTime || null);
+
+  console.log("[BidPanel Timer Debug]", {
+    startTime,
+    endTime,
+    parsedStart: startTime ? new Date(startTime).toISOString() : null,
+    parsedEnd: endTime ? new Date(endTime).toISOString() : null,
+  });
 
   const percentAboveStart =
     startingBid > 0
@@ -89,8 +119,11 @@ export default function BidPanel({
           background: #0d0d0d;
           border: 1px solid #1e1e1e;
           font-family: 'DM Sans', sans-serif;
-          position: sticky;
-          top: 20px;
+          position: relative;
+
+          /* EXPAND: allow full height, no internal scroll */
+          height: auto;
+          overflow: visible;
         }
 
         .bp-header {
@@ -379,6 +412,107 @@ export default function BidPanel({
         </div>
       </div>
 
+      {/* Timer */}
+      {timer.status !== "idle" && (
+        <div style={{
+          padding: "16px 20px",
+          borderBottom: "1px solid #1e1e1e",
+        }}>
+          <div style={{
+            fontSize: 10,
+            letterSpacing: "3px",
+            textTransform: "uppercase",
+            color: "#555",
+            marginBottom: 10,
+            fontFamily: "'DM Sans', sans-serif",
+          }}>
+            {timer.status === "upcoming"
+              ? "Auction Starts In"
+              : timer.status === "live"
+              ? "Auction Ends In"
+              : "Auction Ended"}
+          </div>
+
+          {timer.status === "ended" ? (
+            <span style={{
+              fontSize: 10, letterSpacing: "2px", textTransform: "uppercase",
+              color: "#555", background: "rgba(255,255,255,0.04)",
+              border: "1px solid #222", padding: "3px 8px", borderRadius: 2,
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              Auction Ended
+            </span>
+          ) : (() => {
+            const totalSecs = timer.d * 86400 + timer.h * 3600 + timer.m * 60 + timer.s;
+            const isRed = totalSecs <= 3 * 3600;
+            const color = isRed ? "#ff3b30" : "#00e676";
+            const mutedColor = isRed ? "rgba(255,59,48,0.45)" : "rgba(0,230,118,0.45)";
+            const isLastMin = totalSecs <= 60;
+
+            const unitStyle: React.CSSProperties = {
+              display: "flex", flexDirection: "column", alignItems: "center", minWidth: 64,
+            };
+            const digitStyle: React.CSSProperties = {
+              fontFamily: "'Bebas Neue', sans-serif",
+              fontSize: 56, lineHeight: 1, letterSpacing: 3, color,
+              transition: "color 0.5s ease",
+              animation: isLastMin ? "blink 1s step-start infinite" : undefined,
+            };
+            const labelStyle: React.CSSProperties = {
+              fontSize: 9, letterSpacing: "2.5px", textTransform: "uppercase",
+              marginTop: 4, color: mutedColor, fontFamily: "'DM Sans', sans-serif",
+            };
+            const sepStyle: React.CSSProperties = {
+              fontFamily: "'Bebas Neue', sans-serif",
+              fontSize: 48, lineHeight: 1, paddingTop: 4,
+              color: mutedColor, userSelect: "none", transition: "color 0.5s ease",
+            };
+            const pad = (n: number) => String(n).padStart(2, "0");
+
+            return (
+              <>
+                <style>{`@keyframes blink { 50% { opacity: 0.4; } }`}</style>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  {timer.d > 0 && (
+                    <>
+                      <div style={unitStyle}>
+                        <span style={digitStyle}>{pad(timer.d)}</span>
+                        <span style={labelStyle}>Days</span>
+                      </div>
+                      <span style={sepStyle}>:</span>
+                    </>
+                  )}
+                  <div style={unitStyle}>
+                    <span style={digitStyle}>{pad(timer.h)}</span>
+                    <span style={labelStyle}>Hours</span>
+                  </div>
+                  <span style={sepStyle}>:</span>
+                  <div style={unitStyle}>
+                    <span style={digitStyle}>{pad(timer.m)}</span>
+                    <span style={labelStyle}>Minutes</span>
+                  </div>
+                  <span style={sepStyle}>:</span>
+                  <div style={unitStyle}>
+                    <span style={digitStyle}>{pad(timer.s)}</span>
+                    <span style={labelStyle}>Seconds</span>
+                  </div>
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <span style={{
+                    fontSize: 10, letterSpacing: "2px", textTransform: "uppercase",
+                    color, background: isRed ? "rgba(255,59,48,0.08)" : "rgba(0,230,118,0.08)",
+                    border: `1px solid ${isRed ? "rgba(255,59,48,0.2)" : "rgba(0,230,118,0.2)"}`,
+                    padding: "3px 8px", borderRadius: 2, fontFamily: "'DM Sans', sans-serif",
+                  }}>
+                    {isRed ? "Ending Soon" : "Live"}
+                  </span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
       {/* Type description */}
       {type === "experience" && (
         <p style={{ fontSize: 12, color: "#aaa", padding: "8px 20px 0" }}>
@@ -394,12 +528,12 @@ export default function BidPanel({
 
       {/* Current bid */}
       <div className="bp-current">
-        <div className="bp-current-label">Current Bid</div>
+        <div className="bp-current-label">Highest Bid</div>
         <div className="bp-current-amount">{formatMoney(currentBid, currency)}</div>
         <div className="bp-current-sub">
           <span>Started at {formatMoney(startingBid, currency)}</span>
-          <span className={`bp-reserve ${reserveMet ? "met" : "unmet"}`}>
-            {reserveMet ? "Reserve Met" : "Reserve Not Met"}
+          <span className={`bp-reserve ${currentBid >= startingBid ? "met" : "unmet"}`}>
+            {currentBid >= startingBid ? "Reserve Met" : "Reserve Not Met"}
           </span>
         </div>
       </div>
@@ -414,52 +548,79 @@ export default function BidPanel({
         <div className="bp-input-label">Your Bid</div>
         <div className="bp-input-row">
           <div className="bp-currency">{currency}</div>
-          <input
-            className="bp-input"
-            type="number"
-            min={minNext}
-            step={minIncrement}
-            value={bidAmount}
-            onChange={(e) => handleBidChange(Number(e.target.value))}
-          />
-          <div className="bp-step-btns">
-            <button className="bp-step-btn" onClick={() => handleBidChange(bidAmount + minIncrement)}>▲</button>
-            <div className="bp-step-divider" />
-            <button className="bp-step-btn" onClick={() => handleBidChange(bidAmount - minIncrement)}>▼</button>
-          </div>
+        <input
+          className="bp-input"
+          type="number"
+          min={minNext}
+          step={effectiveIncrement}
+          value={bidAmount === 0 ? "" : bidAmount}
+          placeholder={String(minNext)}
+          style={{ color: bidAmount === minNext ? "#666" : "#ffffff" }}
+          onChange={(e) => {
+            const value = e.target.value;
+            handleBidChange(value === "" ? "" : Number(value));
+          }}
+        />
+        <div className="bp-step-btns">
+          <button className="bp-step-btn" onClick={() => handleBidChange(bidAmount + effectiveIncrement)}>▲</button>
+          <div className="bp-step-divider" />
+          <button className="bp-step-btn" onClick={() => handleBidChange(bidAmount - effectiveIncrement)}>▼</button>
+        </div>
         </div>
       </div>
 
       {/* Quick increments */}
       <div className="bp-quick-row">
-        {QUICK_INCREMENTS.map((mult) => {
-          const amount = currentBid + mult * minIncrement;
-          return (
-            <button key={mult} className="bp-quick-btn" onClick={() => setBidAmount(amount)}>
-              +{formatMoney(mult * minIncrement, currency)}
-            </button>
-          );
-        })}
+      {QUICK_INCREMENTS.map((mult) => {
+        const amount = currentBid + mult * effectiveIncrement;
+        return (
+          <button key={mult} className="bp-quick-btn" onClick={() => setBidAmount(amount)}>
+            +{formatMoney(mult * effectiveIncrement, currency)}
+          </button>
+        );
+      })}
       </div>
 
       {/* Min notice */}
-      <div className="bp-min-notice">
-        Minimum bid: <span>{formatMoney(minNext, currency)}</span> · Increment: <span>{formatMoney(minIncrement, currency)}</span>
-      </div>
+    <div className="bp-min-notice">
+      Minimum bid: <span>{formatMoney(minNext, currency)}</span> · Increment: <span>{formatMoney(effectiveIncrement, currency)}</span>
+    </div>
 
       {/* Status */}
       {status !== "idle" && (
         <div className={`bp-status ${status}`}>{statusMsg}</div>
       )}
 
+      {/* Auction timing notice */}
+      {timer.status === "upcoming" && (
+        <div className="bp-status error">
+          Bidding has not started yet
+        </div>
+      )}
+
+      {timer.status === "ended" && (
+        <div className="bp-status error">
+          Auction has ended
+        </div>
+      )}
+
       {/* Submit */}
       <button
         className={`bp-submit ${loading ? "loading" : ""}`}
         onClick={handleSubmit}
-        disabled={loading || bidAmount < minNext}
+        disabled={
+          loading ||
+          bidAmount <= currentBid ||
+          bidAmount > currentBid * 5 ||
+          timer.status !== "live"
+        }
       >
         {loading
           ? "Placing Bid..."
+          : timer.status === "upcoming"
+          ? "Auction Not Started"
+          : timer.status === "ended"
+          ? "Auction Ended"
           : `${type === "experience" ? "Bid for Spot" : "Place Bid"} ${formatMoney(bidAmount, currency)}`}
       </button>
 

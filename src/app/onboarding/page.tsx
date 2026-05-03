@@ -211,7 +211,8 @@ export default function OnboardingPage() {
         }
       if (form.selectedType === "experiences") {
         if (form.experienceDurationType === "short") {
-          if (!form.experienceHours && !form.experienceMinutes) e.duration = "Enter hours or minutes";
+          const totalMinutes = (Number(form.experienceHours || 0) * 60) + Number(form.experienceMinutes || 0);
+          if (totalMinutes <= 0) e.duration = "Duration must be greater than 0";
           if (!form.experienceDate) e.experienceDate = "Select date";
           if (!form.experienceStartTime) e.experienceStartTime = "Select time";
         } else {
@@ -291,6 +292,10 @@ export default function OnboardingPage() {
         startDateTime: form.startDate && form.startTime ? `${form.startDate} ${form.startTime}` : undefined,
         endDateTime: form.endDate && form.endTime ? `${form.endDate} ${form.endTime}` : undefined,
 
+        // Explicit time fields (fix missing DB mapping)
+        startTime: form.startTime || form.experienceStartTime || undefined,
+        endTime: form.endTime || form.experienceEndTime || undefined,
+
         startingBid: form.startingBid ? Number(form.startingBid) : undefined,
         fixedPrice: form.fixedPrice ? Number(form.fixedPrice) : undefined,
 
@@ -317,10 +322,12 @@ export default function OnboardingPage() {
         fanBenefits: form.fanBenefits,
         durationType: form.experienceDurationType,
         experienceDate: form.experienceDate,
-        startTime: form.experienceStartTime,
-        durationMinutes: form.experienceMinutes ? Number(form.experienceMinutes) : undefined,
-        startDate: form.experienceStartDate,
-        endDate: form.experienceEndDate,
+        startTime: form.experienceStartTime || form.startTime,
+        endTime: form.experienceEndTime || form.endTime,
+        duration:
+          (Number(form.experienceHours || 0) * 60) + Number(form.experienceMinutes || 0) || undefined,
+        startDate: form.experienceStartDate || form.startDate,
+        endDate: form.experienceEndDate || form.endDate,
         guests: form.guests ? Number(form.guests) : undefined,
         location: form.location,
         photosIncluded: form.photosIncluded,

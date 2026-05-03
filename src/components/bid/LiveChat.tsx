@@ -48,6 +48,9 @@ export default function LiveChat({
   viewerCount = 0,
 }: LiveChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  useEffect(() => {
+    setMessages(initialMessages);
+  }, [initialMessages]);
   const [input, setInput] = useState("");
   const [atBottom, setAtBottom] = useState(true);
   const listRef = useRef<HTMLDivElement>(null);

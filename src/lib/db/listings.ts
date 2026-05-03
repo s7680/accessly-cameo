@@ -43,6 +43,7 @@ type ListingPayload = {
 export async function createListing(payload: ListingPayload) {
   console.log("CREATE LISTING CALLED");
   console.log("PAYLOAD TYPE:", payload.type);
+  console.log("INSTAGRAM IN PAYLOAD:", payload.instagramLink);
   const normalizedType = payload.type === "drops" ? "drop" : payload.type === "experiences" ? "experience" : payload.type;
   // 1. upload display image
   let displayImageUrl = null;
@@ -145,6 +146,22 @@ export async function createListing(payload: ListingPayload) {
   if (normalizedType === "experience") {
     try {
       console.log("INSIDE EXPERIENCE BLOCK");
+      console.log("INSTAGRAM BEFORE INSERT:", payload.instagramLink);
+      const startDateTime =
+        payload.startDateTime ||
+        (payload.startDate && payload.startTime
+          ? new Date(`${payload.startDate}T${payload.startTime}`).toISOString()
+          : null);
+
+      const endDateTime =
+        payload.endDateTime ||
+        (payload.startDate && payload.startTime && payload.durationMinutes
+          ? new Date(
+              new Date(`${payload.startDate}T${payload.startTime}`).getTime() +
+                payload.durationMinutes * 60 * 1000
+            ).toISOString()
+          : null);
+
       const { data, error } = await supabase
         .from("experiences_form")
         .insert({
@@ -158,15 +175,19 @@ export async function createListing(payload: ListingPayload) {
           duration_type: payload.durationType,
           experience_date: payload.experienceDate || null,
           start_time: payload.startTime || null,
-          duration_minutes: payload.durationMinutes ?? null,
-          start_date: payload.startDate || null,
-          end_date: payload.endDate || null,
+          duration: payload.durationMinutes ?? null,
+          start_datetime: startDateTime,
+          end_datetime: endDateTime,
           guests: payload.guests,
           location: payload.location,
           photos_included: payload.photosIncluded,
           autograph_included: payload.autographIncluded,
           cuisine: payload.cuisine,
+          instagram_link: payload.instagramLink,
           faq: payload.faq ?? {},
+          pricing_mode: payload.pricingMode,
+          starting_bid: payload.startingBid ?? null,
+          fixed_price: payload.fixedPrice ?? null,
         })
         .select()
         .single();
@@ -174,6 +195,7 @@ export async function createListing(payload: ListingPayload) {
       console.log("EXPERIENCE INSERT DATA:", data);
       console.log("EXPERIENCE ID:", data?.id);
       console.log("EXPERIENCE INSERT ERROR:", error);
+      console.log("INSTAGRAM SAVED IN DB:", data?.instagram_link);
 
       if (error) throw error;
     } catch (e) {
@@ -238,15 +260,39 @@ export async function getExperiences() {
 
   return (data ?? []).map((e: any) => ({
     id: e.id,
-    about_experience: e.about_experience,
+
     display_name: e.display_name,
     display_image: e.display_image,
     category: e.category,
-    location: e.location,
+
+    about_experience: e.about_experience,
+    fan_benefits: e.fan_benefits,
+
+    duration_type: e.duration_type,
     experience_date: e.experience_date,
-    start_date: e.start_date,
-    duration_minutes: e.duration_minutes,
+    start_time: e.start_time,
+    duration: e.duration,
+    start_datetime: e.start_datetime,
+    end_datetime: e.end_datetime,
+
     guests: e.guests,
+    location: e.location,
+
+    photos_included: e.photos_included,
+    autograph_included: e.autograph_included,
+    cuisine: e.cuisine,
+
+    instagram_link: e.instagram_link,
+
+    faq:
+      typeof e.faq === "string"
+        ? JSON.parse(e.faq)
+        : e.faq || {},
+
+    pricing_mode: e.pricing_mode,
+    starting_bid: e.starting_bid,
+    fixed_price: e.fixed_price,
+
     media: (
       (typeof e.media === "string" ? JSON.parse(e.media) : e.media) || []
     ).map((m: any) => {
