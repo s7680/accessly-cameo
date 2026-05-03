@@ -174,14 +174,15 @@ const DropsPage = () => {
                     category: drop.category,
                     currentBid: drop.starting_bid || 0,
                     buyNowPrice: drop.fixed_price || null,
-                   pricingMode:
-  drop.pricing_mode === "Bid"
-    ? "bid"
-    : drop.pricing_mode === "buyNow"
-    ? "fixed"
-    : drop.pricing_mode === "Both"
-    ? "hybrid"
-    : "bid",
+                    pricingMode: (
+                      drop.pricing_mode === "Bid"
+                        ? "bid"
+                        : drop.pricing_mode === "buyNow"
+                        ? "fixed"
+                        : drop.pricing_mode === "Both"
+                        ? "hybrid"
+                        : "bid"
+                    ) as "bid" | "fixed" | "hybrid",
                     totalBids: 0,
                     endsIn: drop.end_datetime,
                     image: drop.display_image,
