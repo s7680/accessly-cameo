@@ -142,10 +142,12 @@ export default function BidPage({
     ],
 
     tags: ["drop"],
-    faq: Object.entries(data.faq || {}).map(([q, a]) => ({
-      question: q,
-      answer: String(a ?? ""),
-    })),
+    faq: Object.entries(data.faq || {}).map(
+      ([q, a]: [string, any]) => ({
+        question: q,
+        answer: String(a ?? ""),
+      })
+    ),
   };
 
   const bidPanelProps = {
