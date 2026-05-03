@@ -144,7 +144,7 @@ export default function BidPage({
     tags: ["drop"],
     faq: Object.entries(data.faq || {}).map(([q, a]) => ({
       question: q,
-      answer: a,
+      answer: String(a ?? ""),
     })),
   };
 
