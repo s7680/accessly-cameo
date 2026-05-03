@@ -105,6 +105,12 @@ export default function BidPage({
   const isExperience = type === "experience";
   const safeId = (resolvedParams?.id ?? "NA").toUpperCase();
 
+  const faqEntries: { question: string; answer: string }[] =
+    Object.entries(data.faq || {}).map(([q, a]) => ({
+      question: String(q),
+      answer: String(a ?? ""),
+    }));
+
   const item = {
     type,
     id: data.id,
@@ -142,12 +148,7 @@ export default function BidPage({
     ],
 
     tags: ["drop"],
-    faq: Object.entries(data.faq || {}).map(
-      ([q, a]: [string, any]) => ({
-        question: q,
-        answer: String(a ?? ""),
-      })
-    ),
+    faq: faqEntries,
   };
 
   const bidPanelProps = {
