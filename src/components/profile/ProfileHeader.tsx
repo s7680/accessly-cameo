@@ -42,12 +42,11 @@ export default function ProfileHeader({ onLogout }: { onLogout?: () => void }) {
     setEditMode(false);
   };
 
-  if (!profile) return null;
-
   return (
     <div
       className="profile-header"
       style={{
+        position: "relative",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -55,6 +54,24 @@ export default function ProfileHeader({ onLogout }: { onLogout?: () => void }) {
         padding: "24px 0",
       }}
     >
+      {onLogout && (
+        <div style={{ position: "absolute", top: 16, right: 16 }}>
+          <button
+            onClick={onLogout}
+            style={{
+              padding: "4px 10px",
+              borderRadius: 8,
+              border: "1px solid #444",
+              background: "transparent",
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: 12
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      )}
       <div style={{ position: "relative" }}>
         <div
           style={{
@@ -132,23 +149,7 @@ export default function ProfileHeader({ onLogout }: { onLogout?: () => void }) {
       ) : (
         <>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-            <h2 style={{ margin: 0, fontSize: 20 }}>{profile?.name}</h2>
-            {onLogout && (
-              <button
-                onClick={onLogout}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 8,
-                  border: "1px solid #444",
-                  background: "transparent",
-                  color: "#fff",
-                  cursor: "pointer",
-                  fontSize: 12
-                }}
-              >
-                Logout
-              </button>
-            )}
+            <h2 style={{ margin: 0, fontSize: 20 }}>{profile?.name || "User"}</h2>
           </div>
           <div style={{ fontSize: 14, color: "#aaa" }}>
             <p style={{ margin: 4 }}>✉️ {profile?.email}</p>

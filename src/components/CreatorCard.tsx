@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Creator } from "@/lib/types";
+import { toggleWatchlist } from "@/lib/watchlist";
 
 interface CreatorCardProps {
   creator: Creator;
@@ -217,8 +218,20 @@ export default function CreatorCard({ creator, variant = "default" }: CreatorCar
 
           <button
             className={`cc-heart ${wishlisted ? "cc-heart--active" : ""}`}
-            onClick={(e) => { e.preventDefault(); setWishlisted((v) => !v); }}
-            aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            onClick={async (e) => {
+              e.preventDefault();
+
+              const newState = !wishlisted;
+              setWishlisted(newState);
+
+              try {
+                await toggleWatchlist(creator.id, "video", newState);
+              } catch (err) {
+                console.error("Watchlist update failed", err);
+                setWishlisted(!newState);
+              }
+            }}
+            aria-label="Toggle wishlist"
           >
             {wishlisted ? "♥" : "♡"}
           </button>

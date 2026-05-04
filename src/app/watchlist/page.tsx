@@ -1,36 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import CreatorCard from "@/components/CreatorCard";
 import DropCard from "@/components/DropCard";
 import ExperienceCard from "@/components/ExperienceCard";
-
-// ── Dummy Data ────────────────────────────────────────────────────────────────
-
-const initialWatchlist = [
-  {
-    id: "1",
-    type: "video",
-    title: "Birthday Video from Virat Kohli",
-    creator: "Virat Kohli",
-    price: 2500,
-    image: "/creator.jpg",
-  },
-  {
-    id: "2",
-    type: "drop",
-    title: "Signed Cricket Bat",
-    creator: "MS Dhoni",
-    price: 15000,
-    image: "/bat.jpg",
-  },
-];
+import { supabase } from "@/lib/supabaseClient";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type WatchlistEntry = (typeof initialWatchlist)[number];
+type WatchlistEntry = {
+  id: string;
+  item_id: string;
+  item_type: string;
+};
 
 interface WatchlistItemProps {
   item: WatchlistEntry;
@@ -98,9 +82,27 @@ function WatchlistItem({ item, onRemove, router }: WatchlistItemProps) {
 
 export default function WatchlistPage() {
   const router = useRouter();
-  const [watchlist, setWatchlist] = useState(initialWatchlist);
+  const [watchlist, setWatchlist] = useState<WatchlistEntry[]>([]);
 
-  const handleRemove = (id: string) => {
+  useEffect(() => {
+    const fetchWatchlist = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("watchlist")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (data) setWatchlist(data);
+    };
+
+    fetchWatchlist();
+  }, []);
+
+  const handleRemove = async (id: string) => {
+    await supabase.from("watchlist").delete().eq("id", id);
     setWatchlist((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -141,12 +143,10 @@ export default function WatchlistPage() {
         ) : (
           <div className="wl-list">
             {watchlist.map((item) => (
-              <WatchlistItem
-                key={item.id}
-                item={item}
-                onRemove={handleRemove}
-                router={router}
-              />
+              <div key={item.id} className="wl-card">
+                <p>{item.item_type} - {item.item_id}</p>
+                <Button onClick={() => handleRemove(item.id)}>Remove</Button>
+              </div>
             ))}
           </div>
         )}

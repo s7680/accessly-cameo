@@ -39,7 +39,7 @@ export async function getUserById(id: string) {
     .from('users')
     .select('*')
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('getUserById error:', error);

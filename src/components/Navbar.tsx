@@ -5,10 +5,13 @@ import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
 import { routes } from "@/lib/routes";
 import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
+import { requireOnboarding } from "@/lib/guards/requireOnboarding";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const getSession = async () => {
@@ -46,18 +49,25 @@ export default function Navbar() {
 
         <div className="nav__actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <NotificationBell />
-          <Link
-            href="/watchlist"
+          <button
+            onClick={async () => {
+              const allowed = await requireOnboarding(router);
+              if (!allowed) return;
+              router.push("/watchlist");
+            }}
             style={{
               fontSize: "20px",
               color: "#ff4d8d",
+              background: "none",
+              border: "none",
               textDecoration: "none",
               display: "flex",
               alignItems: "center",
+              cursor: "pointer",
             }}
           >
             ❤️
-          </Link>
+          </button>
           {user ? (
             <Link href="/profile" className="btn btn--primary btn--sm">
               Profile

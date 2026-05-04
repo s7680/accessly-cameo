@@ -26,9 +26,9 @@ function formatFollowers(n: number): string {
 
 export default function CreatorHeader({
   type,
-  name,
-  handle,
-  avatar,
+  name = "Unknown",
+  handle = "",
+  avatar = "",
   verified = false,
   category,
   followers,
@@ -39,6 +39,9 @@ export default function CreatorHeader({
   endTime,
   isFollowing: initialFollow = false,
 }: CreatorHeaderProps) {
+  // Safety guard
+  const safeAvatar = avatar || "https://via.placeholder.com/150";
+  const safeName = name || "creator";
   const [following, setFollowing] = useState(initialFollow);
 
   const [mounted, setMounted] = useState(false);
@@ -279,7 +282,11 @@ export default function CreatorHeader({
       {/* Creator info */}
       <div className="ch-main">
         <div className="ch-avatar-wrap">
-          <img className="ch-avatar" src={avatar} alt={name} />
+          <img
+            className="ch-avatar"
+            src={safeAvatar}
+            alt={safeName}
+          />
           <div className="ch-live-dot" title="Online" />
         </div>
 

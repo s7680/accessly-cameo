@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { upsertUser } from '@/lib/db/users';
+import { getUserById } from '@/lib/db/users';
 
 export default function OnboardingPage() {
   const [fullName, setFullName]   = useState('');
@@ -17,6 +18,31 @@ export default function OnboardingPage() {
   const [success, setSuccess]     = useState('');
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+
+  const checkExistingUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.log("No authenticated user. Redirecting to sign-in.");
+      router.replace('/sign-in');
+      return;
+    }
+
+    const { data } = await getUserById(user.id);
+
+    if (data) {
+      console.log("Existing user found. Redirecting to landing:", data);
+
+      setFullName(data.name || '');
+      setMobile(data.mobile || '');
+      setInstagram(data.instagram || '');
+      setEmail(data.email || '');
+
+      router.replace('/');
+    } else {
+      console.log("New user. Stay on onboarding.");
+    }
+  };
 
   useEffect(() => {
     const loadUser = async () => {
@@ -32,6 +58,7 @@ export default function OnboardingPage() {
     window.addEventListener('resize', checkScreen);
 
     loadUser();
+    checkExistingUser();
 
     return () => window.removeEventListener('resize', checkScreen);
   }, []);
@@ -63,14 +90,15 @@ export default function OnboardingPage() {
 
     if (avatar) {
       const fileExt = avatar.name.split('.').pop();
-      const fileName = `${user.id}.${fileExt}`;
+    const fileName = `${user.id}/${user.id}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, avatar, { upsert: true });
 
       if (uploadError) {
-        setError('Image upload failed');
+        console.error("Upload failed:", uploadError);
+        setError('Image upload failed. Please try again.');
         setLoading(false);
         return;
       }
@@ -80,6 +108,7 @@ export default function OnboardingPage() {
         .getPublicUrl(fileName);
 
       avatarUrl = publicUrlData.publicUrl;
+      console.log("Generated avatar URL:", avatarUrl);
     }
 
     const { error: insertError } = await upsertUser({
@@ -93,19 +122,21 @@ export default function OnboardingPage() {
     });
 
     if (insertError) {
-      setError('Something went wrong. Please try again.');
+      console.error("Insert error:", insertError);
+
+      if (insertError.message.includes('duplicate') || insertError.message.includes('unique')) {
+        setError('This email or mobile number is already registered.');
+      } else {
+        setError(insertError.message || 'Something went wrong. Please try again.');
+      }
+
       setLoading(false);
       return;
     }
     setSuccess('Profile successfully created');
 
-    const redirectTo =
-      document.referrer && document.referrer.includes(window.location.origin)
-        ? document.referrer
-        : '/';
-
     setTimeout(() => {
-      router.push(redirectTo);
+      router.replace('/');
     }, 1000);
   };
 
@@ -236,7 +267,12 @@ export default function OnboardingPage() {
               />
             </div>
 
-            {error && <p className="form-error">{error}</p>}
+            {error && (
+              <div style={{ color: 'red', marginTop: '8px', textAlign: 'center', fontSize: '16px' }}>
+                {error}
+              </div>
+            )}
+
             {success && <p style={{ color: 'green', marginTop: '8px' }}>{success}</p>}
 
             <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>

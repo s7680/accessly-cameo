@@ -13,6 +13,16 @@ export default function SignInPage() {
 
   const router = useRouter();
 
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        router.replace("/sign-in/onboarding");
+      }
+    };
+    checkUser();
+  }, []);
+
   // NOTE: Do NOT handle onboarding logic here.
   // Redirect decisions should be handled in /auth/callback after OAuth.
 

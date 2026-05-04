@@ -174,6 +174,7 @@ const DropsPage = () => {
                     category: drop.category,
                     currentBid: drop.starting_bid || 0,
                     buyNowPrice: drop.fixed_price || null,
+                    pricing_mode: drop.pricing_mode,
                     totalBids: 0,
                     endsIn: drop.end_datetime,
                     image: drop.display_image,

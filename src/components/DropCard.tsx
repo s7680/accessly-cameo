@@ -6,6 +6,8 @@ import type { Drop } from "@/lib/types";
 import Button from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 import { routes } from "@/lib/routes";
+import { toggleWatchlist } from "@/lib/watchlist";
+import { supabase } from "@/lib/supabaseClient";
 
 interface DropCardProps {
   drop: Drop;
@@ -39,9 +41,11 @@ function fmt(s: number) {
 
 export default function DropCard({ drop }: DropCardProps) {
   const router = useRouter();
+  const [isWatching, setIsWatching] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   if (!drop) return null;
-  const mode = drop.pricingMode || "bid";
+  const mode = (drop.pricing_mode || "bid").toLowerCase();
 
   // Use a safe fallback for endsIn if missing or invalid
   const safeEndsIn =
@@ -54,9 +58,59 @@ export default function DropCard({ drop }: DropCardProps) {
   const endsInSeconds = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
   const isUrgent = endsInSeconds <= 21600; // < 6h
 
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    getUser();
+  }, []);
+
+  useEffect(() => {
+    if (!user || !drop?.id) return;
+
+    const check = async () => {
+      const { data } = await supabase
+        .from("watchlist")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("item_id", drop.id)
+        .eq("item_type", "drop")
+        .maybeSingle();
+      setIsWatching(!!data);
+    };
+
+    check();
+  }, [user, drop.id]);
+
+  const handleWatch = async () => {
+    if (!user) return;
+    const status = await toggleWatchlist(user.id, drop.id, "drop");
+    setIsWatching(status);
+  };
+
   return (
     <article className="drop-card">
       <div className="drop-card__image-wrap">
+        <button
+          onClick={handleWatch}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            fontSize: "22px",
+            color: "red",
+            background: "rgba(0,0,0,0.4)",
+            border: "none",
+            borderRadius: "50%",
+            width: "36px",
+            height: "36px",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+        >
+          ♥
+        </button>
         <Image
           src={
             drop.image && drop.image.trim() !== ""
@@ -123,6 +177,19 @@ export default function DropCard({ drop }: DropCardProps) {
         </div>
 
         <div className="drop-card__actions">
+          {mode === "buynow" && drop.buyNowPrice !== null && (
+            <Button
+              variant="primary"
+              aria-label={`Buy now — ${drop.title}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`${routes.checkout}?id=${drop.id}&type=drop`);
+              }}
+            >
+              Purchase — ₹{(drop.buyNowPrice ?? 0).toLocaleString("en-IN")}
+            </Button>
+          )}
+
           {mode === "bid" && (
             <Button
               aria-label={`Place bid on ${drop.title}`}
@@ -135,13 +202,13 @@ export default function DropCard({ drop }: DropCardProps) {
             </Button>
           )}
 
-          {mode === "fixed" && drop.buyNowPrice !== null && (
+          {(mode === "fixed") && drop.buyNowPrice !== null && (
             <Button
               variant="primary"
               aria-label={`Buy now — ${drop.title}`}
               onClick={(e) => {
                 e.stopPropagation();
-                router.push(routes.checkout);
+                router.push(`${routes.checkout}?id=${drop.id}&type=drop`);
               }}
             >
               Buy Now — ₹{(drop.buyNowPrice ?? 0).toLocaleString("en-IN")}
@@ -166,7 +233,7 @@ export default function DropCard({ drop }: DropCardProps) {
                   aria-label={`Buy now — ${drop.title}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    router.push(routes.checkout);
+                    router.push(`${routes.checkout}?id=${drop.id}&type=drop`);
                   }}
                 >
                   Buy Now — ₹{(drop.buyNowPrice ?? 0).toLocaleString("en-IN")}

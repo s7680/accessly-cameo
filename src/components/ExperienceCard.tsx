@@ -6,6 +6,8 @@ import type { Experience } from "@/lib/types";
 import Button from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 import { routes } from "@/lib/routes";
+import { toggleWatchlist } from "@/lib/watchlist";
+import { supabase } from "@/lib/supabaseClient";
 
 interface ExperienceCardProps {
   experience: Experience;
@@ -33,6 +35,8 @@ function useCountdown(endsIn: string | null) {
 
 export default function ExperienceCard({ experience: exp }: ExperienceCardProps) {
   const router = useRouter();
+  const [isWatching, setIsWatching] = useState(false);
+  const [user, setUser] = useState<any>(null);
   if (!exp) return null;
   const countdown = useCountdown(exp?.endsIn || null);
   const spotsPercent =
@@ -42,12 +46,64 @@ export default function ExperienceCard({ experience: exp }: ExperienceCardProps)
   // Ensure pricingMode default for safety
   const pricingMode = exp.pricingMode || "both";
 
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    getUser();
+  }, []);
+
+  useEffect(() => {
+    if (!user || !exp?.id) return;
+
+    const check = async () => {
+      const { data } = await supabase
+        .from("watchlist")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("item_id", exp.id)
+        .eq("item_type", "experience")
+         .maybeSingle();
+
+      setIsWatching(!!data);
+    };
+
+    check();
+  }, [user, exp.id]);
+
+  const handleWatch = async () => {
+    if (!user) return;
+    const newState = !isWatching;
+    await toggleWatchlist(exp.id, "experience", newState);
+    setIsWatching(newState);
+  };
+
   const hasBid = pricingMode === "auction" || pricingMode === "both" || exp.currentBid != null;
   const hasBuy = pricingMode === "buyNow" || pricingMode === "both" || exp.buyNowPrice != null;
 
   return (
     <article className="experience-card">
       <div className="experience-card__image-wrap">
+        <button
+          onClick={handleWatch}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            fontSize: "22px",
+            color: "red",
+            background: "rgba(0,0,0,0.4)",
+            border: "none",
+            borderRadius: "50%",
+            width: "36px",
+            height: "36px",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+        >
+          ♥
+        </button>
         <Image
           src={
             exp.image && exp.image.trim() !== ""
@@ -164,7 +220,10 @@ export default function ExperienceCard({ experience: exp }: ExperienceCardProps)
             </Button>
           )}
           {hasBuy && (
-            <Button variant="primary">
+            <Button
+              variant="primary"
+              onClick={() => router.push(`${routes.checkout}?id=${exp.id}&type=experience`)}
+            >
               {pricingMode === "both"
                 ? `Buy Now — ₹${exp.buyNowPrice != null ? exp.buyNowPrice.toLocaleString("en-IN") : "Not available"}`
                 : `Book Now — ₹${exp.buyNowPrice != null ? exp.buyNowPrice.toLocaleString("en-IN") : "Not available"}`}

@@ -550,17 +550,27 @@ export async function getDropById(id: string) {
 
   return {
     id: data.id,
-    item_name: data.item_name,
+
+    // Match DropDetails expected prop names
+    itemName: data.item_name,
     category: data.category,
     story: data.story || data.product_details || "",
-    instagram_link: data.instagram_link,
+    instagramLink: data.instagram_link,
 
-    creator: {
-      name: data.users?.username || data.users?.name || data.display_name,
-      avatar: data.users?.avatar_url || data.display_image,
-      instagram: data.users?.instagram_username || null,
-    },
+    condition: data.condition,
+    authenticity: data.authenticity,
+    shippingDetails: data.shipping_details,
+    productDetails: data.product_details,
 
+    fixed_price: data.fixed_price,
+    starting_bid: data.starting_bid,
+
+    faq:
+      typeof data.faq === "string"
+        ? JSON.parse(data.faq)
+        : data.faq || {},
+
+    // Keep media normalized
     media: (
       (typeof data.media === "string"
         ? JSON.parse(data.media)
@@ -585,11 +595,70 @@ export async function getDropById(id: string) {
       })
       .filter((m: any) => m.src),
 
-    product_details: data.product_details,
-    shipping_details: data.shipping_details,
-    condition: data.condition,
-    starting_bid: data.starting_bid,
+    // Optional creator (if used elsewhere)
+    creator: {
+      name: data.users?.username || data.users?.name || data.display_name,
+      avatar: data.users?.avatar_url || data.display_image,
+    },
+  };
+}
+
+export async function getExperienceById(id: string) {
+  const { data, error } = await supabase
+    .from("experiences_form")
+    .select(`
+      *,
+      users:creator_id (
+        *
+      )
+    `)
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+
+    title: data.display_name,
+    category: data.category,
+    about_experience: data.about_experience,
+    location: data.location,
+    duration: data.duration,
+
+    creator: {
+      name: data.users?.username || data.users?.name || data.display_name,
+      avatar: data.users?.avatar_url || data.display_image,
+      instagram: data.users?.instagram_username || null,
+    },
+
+    media: (
+      (typeof data.media === "string"
+        ? JSON.parse(data.media)
+        : data.media) || []
+    )
+      .map((m: any) => {
+        if (typeof m === "string") {
+          const isVideo = m.toLowerCase().endsWith(".mp4");
+          return {
+            type: isVideo ? "video" : "image",
+            src: m,
+            thumbnail: m,
+            alt: data.display_name || "media",
+          };
+        }
+        return {
+          type: m.type || "image",
+          src: m.src || m.url || null,
+          thumbnail: m.thumbnail || m.src || m.url || null,
+          alt: m.alt || data.display_name || "media",
+        };
+      })
+      .filter((m: any) => m.src),
+
     fixed_price: data.fixed_price,
+    starting_bid: data.starting_bid,
+    start_datetime: data.start_datetime ? new Date(data.start_datetime) : null,
     end_datetime: data.end_datetime ? new Date(data.end_datetime) : null,
 
     faq:

@@ -16,8 +16,12 @@ export async function GET(request: Request) {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set() {},   // 🚫 no-op (avoid crash)
-        remove() {},// 🚫 no-op
+        set(name: string, value: string, options) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options) {
+          cookieStore.set({ name, value: "", ...options });
+        },
       },
     }
   );
@@ -32,6 +36,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/sign-in`);
   }
 
+  // check if user exists in public.users table
   const { data: existingUser } = await supabase
     .from("users")
     .select("id")
@@ -41,6 +46,6 @@ export async function GET(request: Request) {
   if (existingUser) {
     return NextResponse.redirect(`${origin}/`);
   } else {
-    return NextResponse.redirect(`${origin}/sign-in/onboarding`);
+    return NextResponse.redirect(`${origin}/onboarding`);
   }
 }

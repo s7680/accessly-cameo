@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
+import { requireOnboarding } from "@/lib/guards/requireOnboarding";
+import { useRouter } from "next/navigation";
 import { getVideoByCreatorId } from "@/lib/db/videos";
 
 import Button from "@/components/ui/Button";
@@ -35,6 +37,7 @@ export default function VideoRequestPage() {
 
   const [creatorData, setCreatorData] = useState<any>(null);
   const params = useParams();
+  const router = useRouter();
   const languageSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -78,6 +81,8 @@ export default function VideoRequestPage() {
 
   const handleSubmit = async () => {
     try {
+      const allowed = await requireOnboarding(router);
+      if (!allowed) return;
       const {
         data: { user },
       } = await supabase.auth.getUser();

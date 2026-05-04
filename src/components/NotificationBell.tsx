@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { requireOnboarding } from "@/lib/guards/requireOnboarding";
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
 
   // Close on outside click
   useEffect(() => {
@@ -30,7 +33,11 @@ export default function NotificationBell() {
     <div ref={ref} style={{ position: "relative" }}>
       {/* Bell */}
       <button
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={async () => {
+          const allowed = await requireOnboarding(router);
+          if (!allowed) return;
+          setOpen((prev) => !prev);
+        }}
         style={{
           fontSize: "18px",
           background: "none",

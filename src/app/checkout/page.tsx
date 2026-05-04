@@ -1,22 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { getDropById, getExperienceById } from "@/lib/db/listings";
+import { requireOnboarding } from "@/lib/guards/requireOnboarding";
 
-// ─── Dummy Data ───────────────────────────────────────────────────────────────
+import MediaCarousel from "@/components/bid/MediaCarousel";
+import DropDetails from "@/components/bid/DropDetails";
+import ExperienceDetails from "@/components/bid/ExperienceDetails";
+import CreatorHeader from "@/components/CreatorHeader";
 
-const data = {
-  type: "experience" as "video" | "drop" | "experience",
-  title: "Dinner with Virat Kohli",
-  price: 25000,
-  creator: {
-    name: "Virat Kohli",
-    avatar: "https://i.pravatar.cc/150?img=68",
-  },
-  preview: {
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80",
-  },
-};
 
 // ─── Tag config ───────────────────────────────────────────────────────────────
 
@@ -63,13 +57,56 @@ function Button({
 export default function CheckoutPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const tag = TAG_MAP[data.type];
+
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+  const typeParam = searchParams.get("type");
+
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!id || !typeParam) return;
+
+      if (typeParam === "drop") {
+        const drop = await getDropById(id);
+        if (!drop) return;
+
+        setData({
+          type: "drop",
+          raw: drop,
+        });
+        console.log("[CHECKOUT DROP DATA]", drop);
+      }
+
+      if (typeParam === "experience") {
+        const exp = await getExperienceById(id);
+        if (!exp) return;
+
+        setData({
+          type: "experience",
+          raw: exp,
+        });
+        console.log("[CHECKOUT EXPERIENCE DATA]", exp);
+      }
+    }
+
+    fetchData();
+  }, [id, typeParam]);
+
+  const tag = data ? TAG_MAP[data.type] : null;
 
   const handlePay = async () => {
+    const allowed = await requireOnboarding(router);
+    if (!allowed) return;
+
     setLoading(true);
     await new Promise((r) => setTimeout(r, 1500));
     router.push("/orders");
   };
+
+  console.log("[CHECKOUT STATE DATA]", data);
+  if (!data) return <div style={{ padding: 20, color: "white" }}>Loading...</div>;
 
   return (
     <>
@@ -109,9 +146,9 @@ export default function CheckoutPage() {
         }
 
         .co-container {
-          max-width: 420px;
+          max-width: 640px;
           margin: 0 auto;
-          padding: 16px 16px 120px; /* bottom space for sticky footer */
+          padding: 16px;
           width: 100%;
           flex: 1;
         }
@@ -441,29 +478,40 @@ export default function CheckoutPage() {
           {/* Item preview card */}
           <div className="co-card">
             <div className="co-card-image-wrap">
-              <img
-                className="co-card-img"
-                src={data.preview.image}
-                alt={data.title}
-              />
+              <MediaCarousel media={Array.isArray(data.raw?.media) ? data.raw.media : []} />
             </div>
+
             <div className="co-card-body">
               <div className="co-card-tag">
                 <span>{tag.icon}</span>
                 {tag.label}
               </div>
-              <h2 className="co-card-title">{data.title}</h2>
-              <div className="co-card-creator">
-                <img
-                  className="co-creator-avatar"
-                  src={data.creator.avatar}
-                  alt={data.creator.name}
-                />
-                <div>
-                  <div className="co-creator-label">Hosted by</div>
-                  <div className="co-creator-name">{data.creator.name}</div>
+
+              <h2 className="co-card-title">
+                {data.type === "drop"
+                  ? data.raw?.item_name || data.raw?.display_name
+                  : data.raw?.title || data.raw?.display_name}
+              </h2>
+
+              {data.raw?.creator && (
+                <div style={{ marginBottom: 12 }}>
+                  <CreatorHeader
+                    creator={{
+                      name: data.raw.creator?.name || "Unknown",
+                      avatar: data.raw.creator?.avatar || data.raw?.display_image || "",
+                      image: data.raw.creator?.avatar || data.raw?.display_image || "",
+                    }}
+                  />
                 </div>
-              </div>
+              )}
+
+              {data.type === "drop" && (
+                <DropDetails drop={data.raw} />
+              )}
+
+              {data.type === "experience" && (
+                <ExperienceDetails experience={data.raw} />
+              )}
             </div>
           </div>
 
@@ -471,7 +519,13 @@ export default function CheckoutPage() {
           <div className="co-price-section">
             <div className="co-price-row">
               <span className="co-price-label">Total</span>
-              <span className="co-price-amount">{formatINR(data.price)}</span>
+              <span className="co-price-amount">
+                {formatINR(
+                  data.type === "drop"
+                    ? data.raw?.winning_bid || data.raw?.fixed_price || data.raw?.starting_bid || 0
+                    : data.raw?.fixed_price || data.raw?.starting_bid || 0
+                )}
+              </span>
             </div>
             <div className="co-price-divider" />
             <div className="co-price-sub">
@@ -494,17 +548,21 @@ export default function CheckoutPage() {
             ))}
           </div>
 
-        </div>
-
-        {/* Sticky pay button footer */}
-        <footer className="co-footer">
-          <div className="co-footer-inner">
-            <p className="co-footer-hint">By continuing you agree to our Terms</p>
+          {/* Purchase Button Section */}
+          <div style={{ marginTop: 20 }}>
+            <p style={{ textAlign: "center", fontSize: 11, color: "#333", marginBottom: 10 }}>
+              By continuing you agree to our Terms
+            </p>
             <Button onClick={handlePay} loading={loading}>
-              Pay {formatINR(data.price)}
+              Purchase {formatINR(
+                data.type === "drop"
+                  ? data.raw?.winning_bid || data.raw?.fixed_price || data.raw?.starting_bid || 0
+                  : data.raw?.fixed_price || data.raw?.starting_bid || 0
+              )}
             </Button>
           </div>
-        </footer>
+
+        </div>
       </div>
     </>
   );

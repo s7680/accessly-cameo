@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useCountdown } from "@/lib/hooks/useCountdown";
+import { useRouter } from "next/navigation";
+import { requireOnboarding } from "@/lib/guards/requireOnboarding";
 
 interface BidPanelProps {
   type: "experience" | "drop";
@@ -49,6 +51,8 @@ export default function BidPanel({
   const [statusMsg, setStatusMsg] = useState("");
   const [watched, setWatched] = useState(initWatched);
 
+  const router = useRouter();
+
   useEffect(() => {
     setBidAmount(currentBid + effectiveIncrement);
   }, [currentBid]);
@@ -62,6 +66,8 @@ export default function BidPanel({
   };
 
   const handleSubmit = async () => {
+    const allowed = await requireOnboarding(router);
+    if (!allowed) return;
     // Minimum rule: must be higher than current bid
     if (bidAmount <= currentBid) {
       setStatus("error");

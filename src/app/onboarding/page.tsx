@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { requireOnboarding } from "@/lib/guards/requireOnboarding";
 import { createVideoForm } from "@/lib/db/videos";
 import { createListing } from "@/lib/db/listings";
 
@@ -174,6 +176,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const set = (key: keyof FormState, value: unknown) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -239,6 +242,8 @@ export default function OnboardingPage() {
   }
 
  async function next() {
+  const allowed = await requireOnboarding(router);
+  if (!allowed) return;
   if (!validateStep(step)) return;
 
   if (step < TOTAL_STEPS) {
@@ -288,7 +293,10 @@ export default function OnboardingPage() {
         story: form.story,
         instagramLink: form.promoInstagramLink,
 
-        pricingMode: form.pricingMode,
+        pricingMode:
+          form.pricingMode === "bid" ? "auction" :
+          form.pricingMode === "buyNow" ? "fixed" :
+          "auction",
         startDateTime: form.startDate && form.startTime ? `${form.startDate} ${form.startTime}` : undefined,
         endDateTime: form.endDate && form.endTime ? `${form.endDate} ${form.endTime}` : undefined,
 

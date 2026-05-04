@@ -155,13 +155,13 @@ export default function ProfilePage() {
         {role === "fan" ? (
           <FanSection
             videos={mockFanVideos}
-            bids={fanBids}
-            wins={fanWins}
+            bids={fanBids.length ? fanBids : mockBids}
+            wins={fanWins.length ? fanWins : mockWins}
           />
         ) : (
           <CreatorSection
             requests={mockRequests}
-            listings={listings}
+            listings={listings.length ? listings : []}
           />
         )}
       </div>
