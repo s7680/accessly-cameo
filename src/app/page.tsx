@@ -80,9 +80,15 @@ export default function HomePage() {
         action={<Button href="/creators" variant="secondary">See All Creators</Button>}
       >
         <div className="card-grid card-grid--4">
-          {allCreators.map((creator) => (
-            <CreatorCard key={creator.id} creator={creator} />
-          ))}
+          {allCreators === null ? (
+            <p>Loading...</p>
+          ) : allCreators.length === 0 ? (
+            <p>No creators found</p>
+          ) : (
+            allCreators.map((creator) => (
+              <CreatorCard key={creator.id} creator={creator} />
+            ))
+          )}
         </div>
       </SectionWrapper>
 
