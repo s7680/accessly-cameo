@@ -2,78 +2,93 @@
 import DropCard from "@/components/DropCard";
 import ExperienceCard from "@/components/ExperienceCard";
 import Button from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
 
 type Props = { wins: any[] };
 
-const dummyWins = [
-  {
-    id: "1",
-    type: "drop",
-    title: "Signed Cricket Bat",
-    image: "/bat.jpg",
-    creator: "MS Dhoni",
-    finalPrice: 18000,
-  },
-  {
-    id: "2",
-    type: "experience",
-    title: "Dinner with Virat Kohli",
-    image: "/experience.jpg",
-    creator: "Virat Kohli",
-    finalPrice: 32000,
-  },
-];
 
 export default function FanWins({ wins }: Props) {
-  const data = wins && wins.length ? wins : dummyWins;
+  const router = useRouter();
+  const data = wins || [];
+
+  if (!wins) {
+    return <div style={{ padding: 16 }}>Loading wins...</div>;
+  }
+
+  if (!data.length) {
+    return <div style={{ padding: 16 }}>No wins yet</div>;
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {data.map((item) => (
-        <div key={item.id} className="profile-card-wrap">
-          {item.type === "drop" ? (
-            <DropCard
-              drop={{
-                id: item.id,
-                title: item.title,
-                description: "",
-                category: "collectible",
-                image: item.image,
-                edition: "1/1",
-                creatorName: item.creator,
-                creatorAvatar: item.image,
-                currentBid: item.finalPrice,
-                totalBids: 5,
-                endsIn: new Date(Date.now() - 86400000).toISOString(),
-                buyNowPrice: item.finalPrice,
+        <div key={item.id} style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
+          <div className="profile-card-wrap" style={{ width: "100%" }}>
+            {item.listing_type === "drop" ? (
+              <DropCard
+                drop={{
+                  id: item.listing_id,
+                  title: item.title || "Untitled",
+                  description: "",
+                  category: item.category || "collectible",
+                  image: item.image || "",
+                  edition: "1/1",
+                  creatorName: item.creator || "",
+                  creatorAvatar: item.image || "",
+                  currentBid: item.winning_bid || 0,
+                  totalBids: 0,
+                  endsIn: item.end_datetime || null,
+                  buyNowPrice: item.winning_bid || 0,
+                }}
+              />
+            ) : (
+              <ExperienceCard
+                experience={{
+                  id: item.listing_id,
+                  title: item.title || "Untitled",
+                  description: "",
+                  creatorId: item.listing_id,
+                  creatorName: item.creator || "",
+                  creatorAvatar: item.image || "",
+                  image: item.image || "",
+                  category: item.category || "general",
+                  location: "",
+                  date: item.start_datetime || null,
+                  duration: "",
+                  pricingMode: "auction",
+                  tags: [],
+                  capacity: 0,
+                  spotsLeft: 0,
+                  buyNowPrice: item.winning_bid || 0,
+                  currentBid: item.winning_bid || 0,
+                  endsIn: item.end_datetime || null,
+                }}
+              />
+            )}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", padding: "0 4px" }}>
+            <Button
+              variant="outline"
+              style={{ width: "100%", padding: "12px", border: "1px solid #000", background: "#fff", display: "block" }}
+              disabled={!item?.id}
+              onClick={() => {
+                if (!item?.id) {
+                  console.error("Missing ORDER ID", item);
+                  return;
+                }
+
+                console.log("NAVIGATING WITH ORDER ID:", item.id);
+
+                if (item.listing_type === "drop") {
+                  router.push(`/winner/drops/${item.id}`);
+                } else {
+                  router.push(`/winner/experiences/${item.id}`);
+                }
               }}
-            />
-          ) : (
-            <ExperienceCard
-              experience={{
-                id: item.id,
-                title: item.title,
-                description: "",
-                creatorId: item.id,
-                creatorName: item.creator,
-                creatorAvatar: item.image,
-                image: item.image,
-                category: "general",
-                location: "Mumbai",
-                date: new Date().toISOString(),
-                duration: "2 hours",
-                pricingMode: "buyNow",
-                tags: ["exclusive"],
-                capacity: 10,
-                spotsLeft: 0,
-                buyNowPrice: item.finalPrice,
-                currentBid: item.finalPrice,
-                endsIn: new Date(Date.now() - 86400000).toISOString(),
-              }}
-            />
-          )}
-          <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: "#4caf50", fontWeight: 600 }}>● Won</span>
-            <Button variant="outline">Manage Order</Button>
+            >
+              Manage Order
+            </Button>
           </div>
         </div>
       ))}

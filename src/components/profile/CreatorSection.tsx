@@ -76,7 +76,17 @@ export default function CreatorSection({ listings }: Props) {
       </div>
 
       {tab === "requests" && <CreatorVideos requests={requests} />}
-      {tab === "listings" && <CreatorListings listings={listings} />}
+      {tab === "listings" && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "16px",
+          }}
+        >
+          <CreatorListings listings={listings} />
+        </div>
+      )}
     </div>
   );
 }

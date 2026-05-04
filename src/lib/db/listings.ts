@@ -1,5 +1,229 @@
 import { supabase } from "@/lib/supabaseClient";
 
+export async function getListings(userId: string) {
+  console.log("USER ID:", userId);
+  const { data: drops } = await supabase
+    .from("drops_form")
+    .select(`
+      id,
+      item_name,
+      start_datetime,
+      end_datetime,
+      fixed_price,
+      display_name,
+      display_image,
+      category,
+      story,
+      pricing_mode,
+      winner_id,
+      winning_bid,
+      status,
+      users ( avatar_url )
+    `)
+    .eq("creator_id", userId);
+
+  const { data: experiences, error: expError } = await supabase
+    .from("experiences_form")
+    .select(`
+      id,
+      creator_id,
+      start_datetime,
+      end_datetime,
+      experience_date,
+      fixed_price,
+      display_name,
+      display_image,
+      category,
+      about_experience,
+      location,
+      duration,
+      guests,
+      pricing_mode,
+      winner_id,
+      winning_bid,
+      status,
+      users ( avatar_url )
+    `)
+    .eq("creator_id", userId);
+
+  if (expError) {
+    console.log("EXPERIENCE FETCH ERROR:", expError);
+  }
+  console.log("EXPERIENCES RAW:", experiences);
+
+  async function getHighestBid(id: string, type: "drop" | "experience") {
+    const { data } = await supabase
+      .from("bids")
+      .select("amount")
+      .eq("listing_id", id)
+      .eq("listing_type", type)
+      .order("amount", { ascending: false })
+      .limit(1)
+      .single();
+
+    return data?.amount || 0;
+  }
+
+  const formattedDrops = await Promise.all(
+    (drops || []).map(async (d: any) => ({
+      ...d,
+      type: "drop",
+      current_bid: await getHighestBid(d.id, "drop"),
+    }))
+  );
+
+  const formattedExperiences = await Promise.all(
+    (experiences || []).map(async (e: any) => ({
+      ...e,
+      type: "experience",
+
+      // normalize experience-specific fields
+      story: e.about_experience,
+      location: e.location,
+      duration: e.duration,
+
+      current_bid: await getHighestBid(e.id, "experience"),
+    }))
+  );
+  console.log("FORMATTED EXPERIENCES:", formattedExperiences);
+
+  return [...formattedDrops, ...formattedExperiences];
+}
+
+export async function getUserBids(userId: string) {
+  // fetch bids by user
+  const { data: bids } = await supabase
+    .from("bids")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (!bids || bids.length === 0) return [];
+
+  const { data: highestBids } = await supabase
+    .from("bids")
+    .select("listing_id, listing_type, amount")
+    .in("listing_id", bids.map((b: any) => b.listing_id))
+    .order("amount", { ascending: false });
+
+  const highestMap: Record<string, number> = {};
+
+  (highestBids || []).forEach((b: any) => {
+    const key = `${b.listing_id}-${b.listing_type}`;
+    if (!highestMap[key]) {
+      highestMap[key] = b.amount;
+    }
+  });
+
+  // Separate drop and experience IDs
+  const dropIds = bids
+    .filter((b: any) => b.listing_type === "drop")
+    .map((b: any) => b.listing_id);
+
+  const experienceIds = bids
+    .filter((b: any) => b.listing_type === "experience")
+    .map((b: any) => b.listing_id);
+
+  // Fetch drops in one query
+  const { data: drops } = await supabase
+    .from("drops_form")
+    .select("id, item_name, display_name, display_image, category, end_datetime")
+    .in("id", dropIds.length ? dropIds : ["00000000-0000-0000-0000-000000000000"]);
+
+  // Fetch experiences in one query
+  const { data: experiences } = await supabase
+    .from("experiences_form")
+    .select("id, display_name, display_image, category, start_datetime, end_datetime")
+    .in("id", experienceIds.length ? experienceIds : ["00000000-0000-0000-0000-000000000000"]);
+
+  const dropMap = Object.fromEntries((drops || []).map((d: any) => [d.id, d]));
+  const expMap = Object.fromEntries((experiences || []).map((e: any) => [e.id, e]));
+
+  const enriched = bids.map((b: any) => {
+    if (b.listing_type === "drop") {
+      const d = dropMap[b.listing_id];
+      return {
+        id: b.id,
+        listing_id: b.listing_id,
+        listing_type: b.listing_type,
+        amount: b.amount,
+        created_at: b.created_at,
+        title: d?.item_name,
+        creator: d?.display_name,
+        image: d?.display_image,
+        category: d?.category,
+        end_datetime: d?.end_datetime,
+        highest_bid: highestMap[`${b.listing_id}-${b.listing_type}`] || 0,
+        isWinning: b.amount === highestMap[`${b.listing_id}-${b.listing_type}`],
+      };
+    }
+
+    if (b.listing_type === "experience") {
+      const e = expMap[b.listing_id];
+      return {
+        id: b.id,
+        listing_id: b.listing_id,
+        listing_type: b.listing_type,
+        amount: b.amount,
+        created_at: b.created_at,
+        title: e?.display_name,
+        creator: e?.display_name,
+        image: e?.display_image,
+        category: e?.category,
+        start_datetime: e?.start_datetime,
+        end_datetime: e?.end_datetime,
+        highest_bid: highestMap[`${b.listing_id}-${b.listing_type}`] || 0,
+        isWinning: b.amount === highestMap[`${b.listing_id}-${b.listing_type}`],
+      };
+    }
+
+    return null;
+  });
+
+  return enriched;
+}
+
+export async function getUserWins(userId: string) {
+  // fetch drops won by user
+  const { data: drops } = await supabase
+    .from("drops_form")
+    .select("id, item_name, display_name, display_image, category, end_datetime, winning_bid")
+    .eq("winner_id", userId);
+
+  // fetch experiences won by user
+  const { data: experiences } = await supabase
+    .from("experiences_form")
+    .select("id, display_name, display_image, category, start_datetime, end_datetime, winning_bid")
+    .eq("winner_id", userId);
+
+  const formattedDrops = (drops || []).map((d: any) => ({
+    id: d.id,
+    listing_id: d.id,
+    listing_type: "drop",
+    title: d.item_name,
+    creator: d.display_name,
+    image: d.display_image,
+    category: d.category,
+    end_datetime: d.end_datetime,
+    winning_bid: d.winning_bid,
+  }));
+
+  const formattedExperiences = (experiences || []).map((e: any) => ({
+    id: e.id,
+    listing_id: e.id,
+    listing_type: "experience",
+    title: e.display_name,
+    creator: e.display_name,
+    image: e.display_image,
+    category: e.category,
+    start_datetime: e.start_datetime,
+    end_datetime: e.end_datetime,
+    winning_bid: e.winning_bid,
+  }));
+
+  return [...formattedDrops, ...formattedExperiences];
+}
+
 type ListingPayload = {
   type: "drop" | "experience";
   category: string;

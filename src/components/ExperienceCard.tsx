@@ -92,6 +92,17 @@ export default function ExperienceCard({ experience: exp }: ExperienceCardProps)
           {exp.description || "No description available"}
         </p>
 
+        <style jsx>{`
+          .experience-card__description {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 3em; /* ensures space for 2 lines even if 1 line */
+            line-height: 1.5em;
+          }
+        `}</style>
+
         <div className="experience-card__meta">
           <span>📅 {exp.date || "TBA"}</span>
           <span>⏳ {exp.duration || "—"}</span>

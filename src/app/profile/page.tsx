@@ -1,8 +1,9 @@
 // src/app/profile/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { getListings, getUserBids, getUserWins } from "@/lib/db/listings";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import RoleToggle from "@/components/profile/RoleToggle";
 import FanSection from "@/components/profile/FanSection";
@@ -83,37 +84,68 @@ const mockRequests = [
   },
 ];
 
-const mockListings = [
-  {
-    id: "l1",
-    type: "drop",
-    title: "Autographed Cricket Bat",
-    image: "/images/bat.jpg",
-    creator: "CricStar",
-    currentBid: 20000,
-    status: "Active",
-    winner: undefined,
-  },
-  {
-    id: "l2",
-    type: "experience",
-    title: "Virtual Studio Tour",
-    image: "/images/studio.jpg",
-    creator: "MusicMogul",
-    currentBid: 8000,
-    status: "Ended",
-    winner: "Aarav",
-    finalPrice: 8000,
-  },
-];
-
 export default function ProfilePage() {
   const [role, setRole] = useState<"fan" | "creator">("fan");
+  const [listings, setListings] = useState<any[]>([]);
+  const [fanBids, setFanBids] = useState<any[]>([]);
+  const [fanWins, setFanWins] = useState<any[]>([]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/";
   };
+
+  useEffect(() => {
+    async function loadListings() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const data = await getListings(user.id);
+
+      // normalize fields for CreatorListings
+      const formatted = (data || []).map((item: any) => ({
+        id: item.id,
+        type: item.type,
+
+        // core fields
+        item_name: item.item_name,
+        start_datetime: item.start_datetime,
+        end_datetime: item.end_datetime,
+
+        // pricing
+        fixed_price: item.fixed_price,
+        current_bid: item.current_bid,
+        pricing_mode: item.pricing_mode,
+
+        // display
+        display_name: item.display_name,
+        display_image: item.display_image,
+        category: item.category,
+
+        // experience-specific
+        story: item.story,
+        location: item.location,
+        duration: item.duration,
+
+        // creator
+        avatar_url: item.users?.avatar_url,
+
+        // auction result
+        winner_id: item.winner_id,
+        winning_bid: item.winning_bid,
+        status: item.status,
+      }));
+
+      const formattedBids = await getUserBids(user.id);
+      const wins = await getUserWins(user.id);
+
+      setListings(formatted);
+      setFanBids(formattedBids);
+      setFanWins(wins);
+    }
+
+    loadListings();
+  }, []);
 
   return (
     <div className="flow-page">
@@ -123,13 +155,13 @@ export default function ProfilePage() {
         {role === "fan" ? (
           <FanSection
             videos={mockFanVideos}
-            bids={mockBids}
-            wins={mockWins}
+            bids={fanBids}
+            wins={fanWins}
           />
         ) : (
           <CreatorSection
             requests={mockRequests}
-            listings={mockListings}
+            listings={listings}
           />
         )}
       </div>
