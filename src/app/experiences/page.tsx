@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ExperienceCard from "@/components/ExperienceCard";
+import SkeletonCard from "@/components/SkeletonCard";
 import { getExperiences } from "@/lib/db/listings";
 
 const ALL_LABEL = "All";
@@ -154,7 +155,9 @@ export default function ExperiencesPage() {
           {/* Grid */}
           <div className="vp-main w-full">
             <div className="experiences-grid">
-              {sorted.map((exp) => (
+              {allExperiences.length === 0
+      ? [1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)
+      : sorted.map((exp) => (
                 <ExperienceCard
                   key={exp.id}
                   experience={{

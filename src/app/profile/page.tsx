@@ -89,6 +89,7 @@ export default function ProfilePage() {
   const [listings, setListings] = useState<any[]>([]);
   const [fanBids, setFanBids] = useState<any[]>([]);
   const [fanWins, setFanWins] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -97,8 +98,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     async function loadListings() {
+      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       const data = await getListings(user.id);
 
@@ -142,6 +147,7 @@ export default function ProfilePage() {
       setListings(formatted);
       setFanBids(formattedBids);
       setFanWins(wins);
+      setLoading(false);
     }
 
     loadListings();
@@ -149,20 +155,54 @@ export default function ProfilePage() {
 
   return (
     <div className="flow-page">
+      <style>{`
+        .sk {
+          background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
       <div className="container--wide" style={{ maxWidth: 900, margin: "0 auto", padding: "0 16px" }}>
-        <ProfileHeader onLogout={handleLogout} />
-        <RoleToggle active={role} onChange={setRole} />
-        {role === "fan" ? (
-          <FanSection
-            videos={mockFanVideos}
-            bids={fanBids.length ? fanBids : mockBids}
-            wins={fanWins.length ? fanWins : mockWins}
-          />
+        {loading ? (
+          <div className="sk" style={{ height: 80, borderRadius: 12 }} />
         ) : (
-          <CreatorSection
-   
-            listings={listings.length ? listings : []}
-          />
+          <ProfileHeader onLogout={handleLogout} />
+        )}
+        {loading ? (
+          <div className="sk" style={{ height: 40, borderRadius: 8, marginTop: 12 }} />
+        ) : (
+          <RoleToggle active={role} onChange={setRole} />
+        )}
+        {role === "fan" ? (
+          loading ? (
+            <div style={{ display: "grid", gap: 16, marginTop: 16 }}>
+              {[1,2,3].map(i => (
+                <div key={i} className="sk" style={{ height: 120, borderRadius: 12 }} />
+              ))}
+            </div>
+          ) : (
+            <FanSection
+              videos={mockFanVideos}
+              bids={fanBids.length ? fanBids : mockBids}
+              wins={fanWins.length ? fanWins : mockWins}
+            />
+          )
+        ) : (
+          loading ? (
+            <div style={{ display: "grid", gap: 16, marginTop: 16 }}>
+              {[1,2,3].map(i => (
+                <div key={i} className="sk" style={{ height: 140, borderRadius: 12 }} />
+              ))}
+            </div>
+          ) : (
+            <CreatorSection
+              listings={listings.length ? listings : []}
+            />
+          )
         )}
       </div>
     </div>

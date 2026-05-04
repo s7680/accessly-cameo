@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DropCard from "@/components/DropCard";
+import SkeletonCard from "@/components/SkeletonCard";
 import { getDrops } from "@/lib/db/listings";
 
 const ALL_LABEL = "All";
@@ -163,26 +164,29 @@ const DropsPage = () => {
           {/* Grid */}
           <div className="vp-main w-full">
             <div className="drops-grid">
-              {sorted.map((drop) => (
-                <DropCard
-                  key={drop.id}
-                  drop={{
-                    id: drop.id,
-                    title: drop.item_name,
-                    creatorName: drop.display_name,
-                    creatorAvatar: drop.display_image || "",
-                    category: drop.category,
-                    currentBid: drop.starting_bid || 0,
-                    buyNowPrice: drop.fixed_price || null,
-                    pricing_mode: drop.pricing_mode,
-                    totalBids: 0,
-                    endsIn: drop.end_datetime,
-                    image: drop.display_image,
-                    description: drop.product_details || "",
-                    edition: "1 of 1",
-                  } as any}
-                />
-              ))}
+              {allDrops.length === 0
+                ? [1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)
+                : sorted.map((drop) => (
+                  <DropCard
+                    key={drop.id}
+                    drop={{
+                      id: drop.id,
+                      title: drop.item_name,
+                      creatorName: drop.display_name,
+                      creatorAvatar: drop.display_image || "",
+                      category: drop.category,
+                      currentBid: drop.starting_bid || 0,
+                      buyNowPrice: drop.fixed_price || null,
+                      pricing_mode: drop.pricing_mode,
+                      totalBids: 0,
+                      endsIn: drop.end_datetime,
+                      image: drop.display_image,
+                      description: drop.product_details || "",
+                      edition: "1 of 1",
+                    } as any}
+                  />
+                ))
+              }
             </div>
           </div>
 

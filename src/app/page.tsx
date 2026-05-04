@@ -1,5 +1,6 @@
 "use client";
 import CreatorCard from "@/components/CreatorCard";
+import SkeletonCard from "@/components/SkeletonCard";
 import DropCard from "@/components/DropCard";
 import ExperienceCard from "@/components/ExperienceCard";
 import SectionWrapper from "@/components/SectionWrapper";
@@ -80,7 +81,11 @@ export default function HomePage() {
         action={<Button href="/creators" variant="secondary">See All Creators</Button>}
       >
         <div className="card-grid card-grid--4">
-          {allCreators.map((creator) => (
+          {allCreators.length === 0 ? (
+            <div className="card-grid card-grid--4">
+              {[1,2,3,4].map(i => <SkeletonCard key={i} />)}
+            </div>
+          ) : allCreators.map((creator) => (
             <CreatorCard key={creator.id} creator={creator} />
           ))}
         </div>
@@ -97,7 +102,9 @@ export default function HomePage() {
       >
         <div className="card-grid card-grid--3">
           {drops.length === 0 ? (
-            <p>No drops found</p>
+            <div className="card-grid card-grid--3">
+              {[1,2,3].map(i => <SkeletonCard key={i} />)}
+            </div>
           ) : drops.map((drop) => (
             <DropCard
               key={drop.id}
@@ -131,7 +138,9 @@ export default function HomePage() {
       >
         <div className="card-grid card-grid--3">
           {experiences.length === 0 ? (
-            <p>No experiences found</p>
+            <div className="card-grid card-grid--3">
+              {[1,2,3].map(i => <SkeletonCard key={i} />)}
+            </div>
           ) : experiences.map((exp) => (
             <ExperienceCard
               key={exp.id}

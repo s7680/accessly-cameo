@@ -110,7 +110,50 @@ useEffect(() => {
     loadLeaderboard();
   }, [data?.id, type]);
 
-  if (!data) return <div style={{ padding: 40 }}>Loading...</div>;
+  if (!data) {
+    return (
+      <div style={{ padding: 16, background: "#080808", minHeight: "100vh" }}>
+        <style>{`
+          .sk {
+            background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 12px;
+          }
+          @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+          }
+        `}</style>
+
+        <div style={{ maxWidth: 1360, margin: "0 auto", display: "grid", gap: 16 }}>
+          {/* Media carousel skeleton */}
+          <div className="sk" style={{ height: 320 }} />
+
+          {/* Header skeleton */}
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <div className="sk" style={{ width: 56, height: 56, borderRadius: "50%" }} />
+            <div style={{ flex: 1 }}>
+              <div className="sk" style={{ height: 16, width: "40%", marginBottom: 8 }} />
+              <div className="sk" style={{ height: 12, width: "25%" }} />
+            </div>
+          </div>
+
+          {/* Details skeleton */}
+          <div className="sk" style={{ height: 220 }} />
+
+          {/* Bid panel skeleton */}
+          <div className="sk" style={{ height: 180 }} />
+
+          {/* Leaderboard skeleton */}
+          <div className="sk" style={{ height: 140 }} />
+
+          {/* Chat skeleton */}
+          <div className="sk" style={{ height: 300 }} />
+        </div>
+      </div>
+    );
+  }
 
   const isExperience = type === "experience";
   const safeId = (resolvedParams?.id ?? "NA").toUpperCase();
