@@ -21,23 +21,10 @@ export async function getUserWins(userId: string) {
   return data || [];
 }
 
-// Update experience (MVP approach)
+// Prevent accidental writes to experiences_form
 export async function updateExperience(id: string, updates: any) {
-  if (!id) return null;
-
-  const { data, error } = await supabase
-    .from("experiences_form")
-    .update(updates)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error updating experience:", error);
-    return null;
-  }
-
-  return data;
+  console.error("updateExperience should not be used for user actions. Use saveOrderAction instead.");
+  return null;
 }
 
 // Fetch single experience by ID
@@ -80,6 +67,185 @@ export async function updateOrderByListingId(listingId: string, userId: string, 
 
   if (error) {
     console.error("Error updating order:", error);
+    return null;
+  }
+
+  return data;
+}
+
+// Upsert (insert or update) order by listingId (for experiences)
+export async function upsertOrderByListingId(listingId: string, userId: string, payload: any) {
+  if (!listingId || !userId) {
+    console.error("Missing listingId or userId", { listingId, userId });
+    return null;
+  }
+
+  // Enforce availability to be only "Yes" or "No"
+  if (payload.availability !== undefined) {
+    const val = String(payload.availability).toLowerCase();
+    if (val !== "yes" && val !== "no") {
+      console.error("Invalid availability value. Only 'Yes' or 'No' allowed.");
+      throw { code: "INVALID_AVAILABILITY", message: "Availability must be Yes or No" };
+    }
+    payload.availability = val === "yes" ? "Yes" : "No";
+  }
+
+  // Step 1: check existing row
+  const { data: existing } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("listing_id", listingId)
+    .eq("buyer_id", userId)
+    .eq("listing_type", "experience")
+    .maybeSingle();
+
+  // Step 2: if exists → update
+  if (existing) {
+    const { data, error } = await supabase
+      .from("orders")
+      .update({
+        seller_id: payload.seller_id || null,
+        amount: payload.amount || null,
+        special_request: payload.special_request || null,
+        availability: payload.availability || null,
+        reschedule_requested: payload.reschedule_requested || false,
+        reschedule_datetime: payload.reschedule_datetime || null,
+        cancel_requested: payload.cancel_requested || false,
+        status: payload.status || "pending",
+      })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating order:", error);
+      return null;
+    }
+
+    return data;
+  }
+
+  // Step 3: else → insert
+  const { data, error } = await supabase
+    .from("orders")
+    .insert({
+      listing_id: listingId,
+      listing_type: "experience",
+      buyer_id: userId,
+      seller_id: payload.seller_id || null,
+      amount: payload.amount || null,
+      special_request: payload.special_request || null,
+      availability: payload.availability || null,
+      reschedule_requested: payload.reschedule_requested || false,
+      reschedule_datetime: payload.reschedule_datetime || null,
+      cancel_requested: payload.cancel_requested || false,
+      status: payload.status || "pending",
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error inserting order:", error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function saveOrderAction(listingId: string, userId: string, payload: any) {
+  if (!listingId || !userId) {
+    console.error("Missing listingId or userId", { listingId, userId });
+    return null;
+  }
+
+  // Enforce availability to be only "Yes" or "No"
+  if (payload.availability !== undefined) {
+    const val = String(payload.availability).toLowerCase();
+    if (val !== "yes" && val !== "no") {
+      console.error("Invalid availability value. Only 'Yes' or 'No' allowed.");
+      throw { code: "INVALID_AVAILABILITY", message: "Availability must be Yes or No" };
+    }
+    payload.availability = val === "yes" ? "Yes" : "No";
+  }
+
+  // Step 1: check existing row
+  const { data: existing } = await supabase
+    .from("orders")
+    .select("id, special_request")
+    .eq("listing_id", listingId)
+    .eq("buyer_id", userId)
+    .eq("listing_type", "experience")
+    .maybeSingle();
+
+  // Special request restriction
+  if (payload.special_request && existing?.special_request) {
+    const error = { code: "23505", message: "Special request already exists" };
+    console.error("Duplicate special request");
+    throw error;
+  }
+
+  // Step 2: update if exists
+  if (existing) {
+    const { data, error } = await supabase
+      .from("orders")
+      .update({
+        ...payload,
+      })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating order:", error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  // Step 3: insert if not exists
+  const { data, error } = await supabase
+    .from("orders")
+    .insert({
+      listing_id: listingId,
+      listing_type: "experience",
+      buyer_id: userId,
+      seller_id: payload.seller_id || null,
+      amount: payload.amount || null,
+      special_request: payload.special_request || null,
+      availability: payload.availability || null,
+      reschedule_requested: payload.reschedule_requested || false,
+      reschedule_datetime: payload.reschedule_datetime || null,
+      cancel_requested: payload.cancel_requested || false,
+      status: payload.status || "pending",
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error inserting order:", error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getOrderByListingId(listingId: string, userId: string) {
+  if (!listingId || !userId) {
+    console.error("Missing listingId or userId", { listingId, userId });
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("listing_id", listingId)
+    .eq("buyer_id", userId)
+    .eq("listing_type", "experience")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching order:", error);
     return null;
   }
 
@@ -144,3 +310,45 @@ export async function sendMessage({
 }
 
 // NOTE: messages tied via listing_id (experience id), not order_id
+
+export async function getMessagesByListingId(listingId: string) {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("listing_id", listingId)
+    .eq("listing_type", "experience")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching messages:", error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function sendMessageToListing(
+  listingId: string,
+  userId: string,
+  role: "buyer" | "seller",
+  text: string
+) {
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({
+      listing_id: listingId,
+      listing_type: "experience",
+      sender_id: userId,
+      sender_role: role,
+      message: text,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error sending message:", error);
+    throw error;
+  }
+
+  return data;
+}

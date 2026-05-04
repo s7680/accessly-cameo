@@ -47,7 +47,7 @@ export default function CreatorListings({ listings }: Props) {
                     border: "1px solid #333",
                     cursor: "pointer",
                   }}
-                  onClick={() => router.push(`/seller/drop/${item.id}`)}
+                  onClick={() => router.push(`/seller/drop/${encodeURIComponent(String(item.id))}`)}
                 >
                   Manage Order
                 </button>
@@ -99,7 +99,7 @@ export default function CreatorListings({ listings }: Props) {
                     border: "1px solid #333",
                     cursor: "pointer",
                   }}
-                  onClick={() => router.push(`/seller/experience/${item.id}`)}
+                  onClick={() => router.push(`/seller/experience/${encodeURIComponent(String(item.id))}`)}
                 >
                   Manage Order
                 </button>

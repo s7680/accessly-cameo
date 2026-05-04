@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useParams } from "next/navigation";
-import { updateExperience, getExperienceById } from "@/lib/profile/won/listings";
+import { getExperienceById, saveOrderAction, getOrderByListingId, getMessagesByListingId, sendMessageToListing } from "@/lib/profile/won/listings";
 
 const GOLD = "#c9a84c";
 const BG = "#0d0d0d";
@@ -133,8 +134,20 @@ export default function OrderExperiencePage() {
   }
 
   const [experienceData, setExperienceData] = useState<any>(null);
+  const [order, setOrder] = useState<any>(null);
 const experience = experienceData;
-  const userRole = USER_ROLE;
+const userRole = USER_ROLE;
+const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    fetchUser();
+  }, []);
 
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingForm, setBookingForm] = useState({
@@ -146,73 +159,91 @@ const experience = experienceData;
   });
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!receivedId) return;
+      if (!receivedId || !user?.id) return;
 
-      const data = await getExperienceById(receivedId);
+      const exp = await getExperienceById(receivedId);
+      if (!exp) return;
 
-      console.log("FETCHED ORDER:", data);
+      setExperienceData(exp);
 
-      if (!data) {
-        console.warn("No order found for ID:", receivedId);
-        return;
+      const ord = await getOrderByListingId(receivedId, user.id);
+      setOrder(ord);
+      const msgs = await getMessagesByListingId(receivedId);
+      setQueries(msgs);
+
+      if (ord?.special_request) {
+        setSpecialRequest(ord.special_request);
+        setRequestSubmitted(true);
       }
+      if (ord?.availability === "Yes") {
+  setAvailabilityLocked(true);
+}
 
-setSelectedMedia({
-  type: "image",
-  src: data.display_image || ""
-});
+      setSelectedMedia({
+        type: "image",
+        src: exp.display_image || ""
+      });
     };
 
     fetchOrder();
-  }, [receivedId]);
+  }, [receivedId, user]);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
  const [selectedMedia, setSelectedMedia] = useState<{ type: "image" | "video"; src: string }>({
   type: "image",
   src: ""
 });
-  const [queries, setQueries] = useState(DUMMY_QUERIES);
+const [queries, setQueries] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
   const [requestSubmitted, setRequestSubmitted] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState("");
-  const handleSubmitAvailability = async () => {
-    const updated = await updateExperience(experienceData.id, {
-      availability: new Date().toISOString(),
+ const [actionMessage, setActionMessage] = useState<string | null>(null);
+const [availabilityLocked, setAvailabilityLocked] = useState(false);
+ const [rescheduleDate, setRescheduleDate] = useState("");
+const [showRescheduleInput, setShowRescheduleInput] = useState(false);
+  const handleSubmitAvailability = async (value: "Yes" | "No") => {
+    if (!user?.id) return;
+
+    const updated = await saveOrderAction(experienceData.id, user.id, {
+      availability: value,
+      seller_id: experienceData.creator_id,
+      amount: experienceData.winning_bid,
     });
 
     if (!updated) return;
 
-    setExperienceData(updated);
-    setActionMessage("Availability submitted. Creator will confirm schedule.");
+setActionMessage(`Availability submitted: ${value}`);
+if (value === "Yes") {
+  setAvailabilityLocked(true);
+}
   };
 
   const handleReschedule = async () => {
+    if (!user?.id) return;
     if (!rescheduleDate) {
       setActionMessage("Please select a preferred new date/time.");
       return;
     }
-    const updated = await updateExperience(experienceData.id, {
+    const updated = await saveOrderAction(experienceData.id, user.id, {
       reschedule_requested: true,
       reschedule_datetime: rescheduleDate,
+      seller_id: experienceData.creator_id,
+      amount: experienceData.winning_bid,
     });
-
     if (!updated) return;
-
-    setExperienceData(updated);
     setActionMessage(`Reschedule requested for ${new Date(rescheduleDate).toLocaleString()}`);
     setRescheduleDate("");
+    setShowRescheduleInput(false);
   };
 
   const handleCancel = async () => {
-    const updated = await updateExperience(experienceData.id, {
+    if (!user?.id) return;
+    const updated = await saveOrderAction(experienceData.id, user.id, {
       cancel_requested: true,
+      seller_id: experienceData.creator_id,
+      amount: experienceData.winning_bid,
     });
-
     if (!updated) return;
-
-    setExperienceData(updated);
     setActionMessage("Cancellation request sent.");
   };
 
@@ -262,18 +293,24 @@ setSelectedMedia({
     }, 400);
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
-    setQueries((prev) => [
-      ...prev,
-      {
-        id: String(Date.now()),
-        sender: "buyer",
-        message: newMessage,
-        created_at: new Date().toISOString(),
-      },
-    ]);
-    setNewMessage("");
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !user?.id) return;
+
+    try {
+      const msg = await sendMessageToListing(
+        receivedId,
+        user.id,
+        "buyer",
+        newMessage
+      );
+
+      if (!msg) return;
+
+      setQueries((prev) => [...prev, msg]);
+      setNewMessage("");
+    } catch (err) {
+      console.error("Send message failed", err);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -471,7 +508,8 @@ setSelectedMedia({
           <textarea
             value={specialRequest}
             onChange={(e) => setSpecialRequest(e.target.value)}
-            placeholder="Share any preferences or requests for the creator..."
+            disabled={requestSubmitted}
+            placeholder={requestSubmitted ? "Special request already submitted" : "Share any preferences or requests for the creator..."}
             style={{
               width: "100%",
               minHeight: 80,
@@ -486,28 +524,43 @@ setSelectedMedia({
           />
 
           <button
+            disabled={requestSubmitted}
             onClick={async () => {
+              if (requestSubmitted) {
+                alert("You can send special request only once.");
+                return;
+              }
+              if (!user?.id) return;
               if (!specialRequest.trim()) return;
 
-              const updated = await updateExperience(experienceData.id, {
-                // remove special_request since it does not exist in experiences_form
-              });
-              console.warn("special_request belongs to orders table, not experiences_form");
+              try {
+                const updated = await saveOrderAction(experienceData.id, user.id, {
+                  special_request: specialRequest,
+                  seller_id: experienceData.creator_id,
+                  amount: experienceData.winning_bid,
+                });
 
-              if (!updated) return;
+                if (!updated) return;
 
-              setExperienceData(updated);
-              setRequestSubmitted(true);
-              setSpecialRequest("");
+                setRequestSubmitted(true);
+                setSpecialRequest("");
+              } catch (err: any) {
+                if (err?.code === "23505") {
+                  alert("You can send special request only once.");
+                  setRequestSubmitted(true);
+                } else {
+                  alert("Something went wrong. Please try again.");
+                }
+              }
             }}
             style={{
               padding: "10px 16px",
-              background: GOLD,
+              background: requestSubmitted ? "#555" : GOLD,
               border: "none",
               borderRadius: 6,
-              cursor: "pointer",
+              cursor: requestSubmitted ? "not-allowed" : "pointer",
               fontWeight: 600,
-              color: "#000",
+              color: requestSubmitted ? "#aaa" : "#000",
             }}
           >
             Submit Request
@@ -533,30 +586,34 @@ setSelectedMedia({
           <h3 style={{ fontSize: 16, marginBottom: 12, color: GOLD }}>Actions</h3>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={handleSubmitAvailability}
-              style={{
-                padding: "10px 16px",
-                background: GOLD,
-                border: "none",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontWeight: 600,
-                color: "#000",
-              }}
-            >
-              Submit Availability
+       <button
+  onClick={() => handleSubmitAvailability("Yes")}
+  disabled={availabilityLocked}
+  style={{
+    padding: "10px 16px",
+    background: availabilityLocked ? "#555" : GOLD,
+    border: "none",
+    borderRadius: 6,
+    cursor: availabilityLocked ? "not-allowed" : "pointer",
+    fontWeight: 600,
+    color: availabilityLocked ? "#aaa" : "#000",
+  }}
+>
+              Available (Yes)
             </button>
 
+
             <button
-              onClick={handleReschedule}
+         onClick={() => setShowRescheduleInput(true)}
+              disabled={availabilityLocked}
               style={{
                 padding: "10px 16px",
                 background: "transparent",
                 border: `1px solid ${BORDER}`,
                 borderRadius: 6,
-                cursor: "pointer",
+                cursor: availabilityLocked ? "not-allowed" : "pointer",
                 color: "#fff",
+                opacity: availabilityLocked ? 0.5 : 1,
               }}
             >
               Request Reschedule (with date)
@@ -564,34 +621,55 @@ setSelectedMedia({
 
             <button
               onClick={handleCancel}
+              disabled={availabilityLocked}
               style={{
                 padding: "10px 16px",
                 background: "transparent",
                 border: "1px solid #ef4444",
                 borderRadius: 6,
-                cursor: "pointer",
+                cursor: availabilityLocked ? "not-allowed" : "pointer",
                 color: "#ef4444",
+                opacity: availabilityLocked ? 0.5 : 1,
               }}
             >
               Cancel Booking
             </button>
           </div>
 
-          <input
-            type="datetime-local"
-            value={rescheduleDate}
-            onChange={(e) => setRescheduleDate(e.target.value)}
-            style={{
-              marginTop: 12,
-              padding: "8px 10px",
-              borderRadius: 6,
-              border: `1px solid ${BORDER}`,
-              background: "#0d0d0d",
-              color: "#fff",
-              fontSize: 13,
-              width: "100%",
-            }}
-          />
+         {showRescheduleInput && (
+  <div style={{ marginTop: 12 }}>
+    <input
+      type="datetime-local"
+      value={rescheduleDate}
+      onChange={(e) => setRescheduleDate(e.target.value)}
+      style={{
+        padding: "8px 10px",
+        borderRadius: 6,
+        border: `1px solid ${BORDER}`,
+        background: "#0d0d0d",
+        color: "#fff",
+        fontSize: 13,
+        width: "100%",
+        marginBottom: 10,
+      }}
+    />
+
+    <button
+      onClick={handleReschedule}
+      style={{
+        padding: "8px 14px",
+        background: GOLD,
+        border: "none",
+        borderRadius: 6,
+        cursor: "pointer",
+        fontWeight: 600,
+        color: "#000",
+      }}
+    >
+      Submit Reschedule
+    </button>
+  </div>
+)}
         </div>
 
         {actionMessage && (
@@ -630,9 +708,9 @@ setSelectedMedia({
                 <div
                   key={q.id}
                   style={{
-                    alignSelf: q.sender === "buyer" ? "flex-start" : "flex-end",
-                    background: q.sender === "buyer" ? "#1e1e1e" : GOLD,
-                    color: q.sender === "buyer" ? "#fff" : "#000",
+                    alignSelf: q.sender_role === "buyer" ? "flex-start" : "flex-end",
+                    background: q.sender_role === "buyer" ? "#1e1e1e" : GOLD,
+                    color: q.sender_role === "buyer" ? "#fff" : "#000",
                     padding: "8px 12px",
                     borderRadius: 12,
                     maxWidth: "70%",
