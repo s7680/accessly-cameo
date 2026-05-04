@@ -3,6 +3,8 @@
 import React from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useParams } from "next/navigation";
+import { getSellerDropOrderAddressByOrderId, updateDropShipmentAndStatus } from "@/lib/db/profile/seller/drops";
+import Button from "@/components/ui/Button";
 
 export default function DropSellerPage() {
   const params = useParams();
@@ -20,7 +22,10 @@ export default function DropSellerPage() {
     phone: "",
   });
 
-  const [orderStatus, setOrderStatus] = React.useState("pending");
+  const [packagingVideo, setPackagingVideo] = React.useState<string>("");
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [courierCompany, setCourierCompany] = React.useState("");
+  const [trackingId, setTrackingId] = React.useState("");
 
   React.useEffect(() => {
     if (!id) return;
@@ -41,14 +46,19 @@ export default function DropSellerPage() {
 
       const { data: orderData } = await supabase
         .from("orders")
-        .select("*")
+        .select("id")
         .eq("listing_id", id)
         .eq("listing_type", "drop")
         .maybeSingle();
 
+      let fullOrder = null;
+      if (orderData?.id) {
+        fullOrder = await getSellerDropOrderAddressByOrderId(orderData.id);
+      }
+
       setDrop(dropData);
       setBids(bidsData || []);
-      setOrder(orderData);
+      setOrder(fullOrder);
     }
 
     fetchData();
@@ -60,44 +70,125 @@ export default function DropSellerPage() {
     <div style={{ padding: 24 }}>
       <h1>{drop.item_name}</h1>
 
-      <p>Status: {drop.status}</p>
       <p>Winning Bid: ₹{drop.winning_bid || "Not decided"}</p>
       <p>Winner ID: {drop.winner_id || "No winner"}</p>
 
+      <p style={{ color: "green", fontWeight: 600 }}>
+        Payment Status: Paid by Buyer
+      </p>
+
       <h2 style={{ marginTop: 20 }}>Order Details</h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 400 }}>
-        <input placeholder="Customer Name" value={order?.shipping_details?.name || ""} disabled />
-        <input placeholder="Address" value={order?.shipping_details?.address || ""} disabled />
-        <input placeholder="City" value={order?.shipping_details?.city || ""} disabled />
-        <input placeholder="Pincode" value={order?.shipping_details?.pincode || ""} disabled />
-        <input placeholder="Phone" value={order?.shipping_details?.phone || ""} disabled />
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div><strong>Name:</strong> {order?.address_details?.name || "N/A"}</div>
+        <div><strong>Address:</strong> {order?.address_details?.address || "N/A"}</div>
+        <div><strong>City:</strong> {order?.address_details?.city || "N/A"}</div>
+        <div><strong>State:</strong> {order?.address_details?.state || "N/A"}</div>
+        <div><strong>Pincode:</strong> {order?.address_details?.pincode || "N/A"}</div>
+        <div><strong>Phone:</strong> {order?.address_details?.phone || "N/A"}</div>
       </div>
 
-      <h2 style={{ marginTop: 20 }}>Order Status</h2>
 
-      <select value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)}>
-        <option value="pending">Pending</option>
-        <option value="confirmed">Confirmed</option>
-        <option value="shipped">Shipped</option>
-        <option value="delivered">Delivered</option>
-      </select>
+      <h2 style={{ marginTop: 30 }}>Packaging Video</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 400 }}>
+        <input
+          type="file"
+          accept="video/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            console.log("Selected video file:", file);
+            setSelectedFile(file);
+          }}
+          style={{ padding: "10px", borderRadius: 6, border: "1px solid #ccc" }}
+        />
+        <Button
+          style={{ padding: "10px" }}
+          onClick={async () => {
+            if (!selectedFile || !order?.id) return;
 
-      <button
-        style={{ marginTop: 12, padding: "10px", background: "black", color: "white", cursor: "pointer" }}
+            const filePath = `packaging/${order.id}-${Date.now()}-${selectedFile.name}`;
+
+            const { error } = await supabase.storage
+              .from("packaging-videos")
+              .upload(filePath, selectedFile);
+
+            if (error) {
+              console.error("Upload failed:", error);
+              return;
+            }
+
+            const { data } = supabase.storage
+              .from("packaging-videos")
+              .getPublicUrl(filePath);
+
+            const publicUrl = data.publicUrl;
+
+            setPackagingVideo(publicUrl);
+
+            console.log("Uploaded video URL:", publicUrl);
+          }}
+        >
+          Upload Video
+        </Button>
+      </div>
+
+      <h2 style={{ marginTop: 30 }}>Courier Details</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 400 }}>
+        <input
+          placeholder="Courier Company"
+          value={courierCompany}
+          onChange={(e) => setCourierCompany(e.target.value)}
+          style={{ padding: "10px", borderRadius: 6, border: "1px solid #ccc" }}
+        />
+        <input
+          placeholder="Tracking ID"
+          value={trackingId}
+          onChange={(e) => setTrackingId(e.target.value)}
+          style={{ padding: "10px", borderRadius: 6, border: "1px solid #ccc" }}
+        />
+      </div>
+      <p style={{ marginTop: 10, color: "green", fontWeight: 600 }}>
+        Status: {order?.status === "completed" ? "Completed" : "Pending"}
+      </p>
+
+      <Button
+        style={{ marginTop: 12 }}
         onClick={async () => {
           if (!order?.id) return;
 
-          await supabase
-            .from("orders")
-            .update({ status: orderStatus })
-            .eq("id", order.id);
+          await updateDropShipmentAndStatus(order.id, {
+            packaging_video_url: packagingVideo,
+            courier_details: {
+              company: courierCompany,
+              tracking_id: trackingId,
+            },
+          });
 
-          console.log("Order updated");
+          console.log("Shipment details updated");
         }}
       >
-        Update Order Status
-      </button>
+        Submit
+      </Button>
+
+      <p style={{ marginTop: 12, fontWeight: 600 }}>
+        Order Status: {order?.status === "completed" ? "Completed" : "Pending"}
+      </p>
+
+      <Button
+        style={{ marginTop: 8 }}
+        onClick={async () => {
+          if (!order?.id) return;
+
+          await updateDropShipmentAndStatus(order.id, {
+            status: "completed",
+          });
+
+          console.log("Order marked as completed");
+        }}
+      >
+        Mark as Completed
+      </Button>
 
       <h2 style={{ marginTop: 20 }}>All Bids</h2>
 

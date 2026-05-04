@@ -238,11 +238,29 @@ export async function getOrderByListingId(listingId: string, userId: string) {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("*")
+    .select(`
+      *,
+      buyer:users!orders_buyer_id_fkey (
+        id,
+        name,
+        email,
+        mobile,
+        instagram
+      ),
+      seller:users!orders_seller_id_fkey (
+        id,
+        name,
+        email,
+        mobile,
+        instagram
+      )
+    `)
     .eq("listing_id", listingId)
     .eq("buyer_id", userId)
     .eq("listing_type", "experience")
     .maybeSingle();
+
+  console.log("[DB] Order with user data:", data);
 
   if (error) {
     console.error("Error fetching order:", error);

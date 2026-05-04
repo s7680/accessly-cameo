@@ -81,7 +81,7 @@ export default function FanWins({ wins }: Props) {
                 console.log("NAVIGATING WITH ORDER ID:", item.id);
 
                 if (item.listing_type === "drop") {
-                  router.push(`/winner/drops/${item.id}`);
+                  router.push(`/winner/drops/${item.listing_id}`);
                 } else {
                   router.push(`/winner/experiences/${item.id}`);
                 }

@@ -157,6 +157,7 @@ const [user, setUser] = useState<any>(null);
     customerEmail: "",
     customerPhone: "",
   });
+
   useEffect(() => {
     const fetchOrder = async () => {
       if (!receivedId || !user?.id) return;
@@ -199,6 +200,14 @@ const [queries, setQueries] = useState<any[]>([]);
   const [updating, setUpdating] = useState(false);
  const [actionMessage, setActionMessage] = useState<string | null>(null);
 const [availabilityLocked, setAvailabilityLocked] = useState(false);
+
+  // Unified disable flag for actions
+  const disableAllActions =
+    availabilityLocked ||
+    order?.cancel_requested === true ||
+    order?.cancel_accepted === true ||
+    order?.cancel_accepted === "Yes" ||
+    order?.reschedule_requested === true;
  const [rescheduleDate, setRescheduleDate] = useState("");
 const [showRescheduleInput, setShowRescheduleInput] = useState(false);
   const handleSubmitAvailability = async (value: "Yes" | "No") => {
@@ -371,6 +380,70 @@ if (value === "Yes") {
         Debug ID: {receivedId || "No ID received"}
       </div>
 
+      {/* Creator Actions Broadcast */}
+      {order && (
+        <div style={{ marginBottom: 20 }}>
+          {/* Buyer Cancelled */}
+          {(order?.cancel_requested === true) && (
+            <div style={{
+              padding: 14,
+              borderRadius: 8,
+              background: "#ef444420",
+              border: "1px solid #ef4444",
+              color: "#ef4444",
+              fontWeight: 700,
+              marginBottom: 10,
+              textAlign: "center"
+            }}>
+              Booking Cancelled by You
+            </div>
+          )}
+
+          {(order?.reschedule_accepted === "Yes" || order?.reschedule_accepted === true) && (
+            <div style={{
+              padding: 14,
+              borderRadius: 8,
+              background: "#22c55e20",
+              border: "1px solid #22c55e",
+              color: "#22c55e",
+              fontWeight: 600,
+              marginBottom: 10
+            }}>
+              Reschedule request accepted by creator
+            </div>
+          )}
+
+          {(order?.cancel_accepted === "Yes" || order?.cancel_accepted === true) && (
+            <div style={{
+              padding: 14,
+              borderRadius: 8,
+              background: "#ef444420",
+              border: "1px solid #ef4444",
+              color: "#ef4444",
+              fontWeight: 600,
+              marginBottom: 10
+            }}>
+              Booking Cancelled by Creator
+            </div>
+          )}
+
+          {order?.status === "completed" && (
+            <div style={{
+              padding: 14,
+              borderRadius: 8,
+              background: "#22c55e20",
+              border: "1px solid #22c55e",
+              color: "#22c55e",
+              fontWeight: 700,
+              textAlign: "center",
+              marginBottom: 10
+            }}>
+              Booking Completed
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Message Alert */}
       {message && (
         <div
@@ -423,10 +496,11 @@ if (value === "Yes") {
           >
             <p style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>Next Step</p>
             <p style={{ fontSize: 14 }}>
-              {experienceData.status === "pending" && "Waiting for creator confirmation"}
-              {experienceData.status === "confirmed" && "Coordinate schedule with creator"}
-              {experienceData.status === "completed" && "Experience completed"}
-              {experienceData.status === "cancelled" && "Booking cancelled"}
+              {order?.status === "completed"
+                ? "Completed"
+                : order?.status === "cancelled"
+                ? "Booking cancelled"
+                : "In Process"}
             </p>
           </div>
         </div>
@@ -467,11 +541,11 @@ if (value === "Yes") {
                 style={{
                   fontSize: 18,
                   fontWeight: 600,
-                  color: getStatusColor(experienceData.status),
+                  color: getStatusColor(order?.status || "pending"),
                   textTransform: "capitalize",
                 }}
               >
-                {experienceData.status}
+                {order?.status || "pending"}
               </p>
             </div>
             <div>
@@ -586,34 +660,33 @@ if (value === "Yes") {
           <h3 style={{ fontSize: 16, marginBottom: 12, color: GOLD }}>Actions</h3>
 
           <div style={{ display: "flex", gap: 10 }}>
-       <button
-  onClick={() => handleSubmitAvailability("Yes")}
-  disabled={availabilityLocked}
-  style={{
-    padding: "10px 16px",
-    background: availabilityLocked ? "#555" : GOLD,
-    border: "none",
-    borderRadius: 6,
-    cursor: availabilityLocked ? "not-allowed" : "pointer",
-    fontWeight: 600,
-    color: availabilityLocked ? "#aaa" : "#000",
-  }}
->
+            <button
+              onClick={() => handleSubmitAvailability("Yes")}
+              disabled={disableAllActions}
+              style={{
+                padding: "10px 16px",
+                background: disableAllActions ? "#555" : GOLD,
+                border: "none",
+                borderRadius: 6,
+                cursor: disableAllActions ? "not-allowed" : "pointer",
+                fontWeight: 600,
+                color: disableAllActions ? "#aaa" : "#000",
+              }}
+            >
               Available (Yes)
             </button>
 
-
             <button
-         onClick={() => setShowRescheduleInput(true)}
-              disabled={availabilityLocked}
+              onClick={() => setShowRescheduleInput(true)}
+              disabled={disableAllActions}
               style={{
                 padding: "10px 16px",
                 background: "transparent",
                 border: `1px solid ${BORDER}`,
                 borderRadius: 6,
-                cursor: availabilityLocked ? "not-allowed" : "pointer",
+                cursor: disableAllActions ? "not-allowed" : "pointer",
                 color: "#fff",
-                opacity: availabilityLocked ? 0.5 : 1,
+                opacity: disableAllActions ? 0.5 : 1,
               }}
             >
               Request Reschedule (with date)
@@ -621,55 +694,75 @@ if (value === "Yes") {
 
             <button
               onClick={handleCancel}
-              disabled={availabilityLocked}
+              disabled={disableAllActions}
               style={{
                 padding: "10px 16px",
                 background: "transparent",
                 border: "1px solid #ef4444",
                 borderRadius: 6,
-                cursor: availabilityLocked ? "not-allowed" : "pointer",
+                cursor: disableAllActions ? "not-allowed" : "pointer",
                 color: "#ef4444",
-                opacity: availabilityLocked ? 0.5 : 1,
+                opacity: disableAllActions ? 0.5 : 1,
               }}
             >
               Cancel Booking
             </button>
           </div>
 
-         {showRescheduleInput && (
-  <div style={{ marginTop: 12 }}>
-    <input
-      type="datetime-local"
-      value={rescheduleDate}
-      onChange={(e) => setRescheduleDate(e.target.value)}
-      style={{
-        padding: "8px 10px",
-        borderRadius: 6,
-        border: `1px solid ${BORDER}`,
-        background: "#0d0d0d",
-        color: "#fff",
-        fontSize: 13,
-        width: "100%",
-        marginBottom: 10,
-      }}
-    />
+          {showRescheduleInput && !disableAllActions && (
+            <div style={{ marginTop: 12 }}>
+              <input
+                type="datetime-local"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 6,
+                  border: `1px solid ${BORDER}`,
+                  background: "#0d0d0d",
+                  color: "#fff",
+                  fontSize: 13,
+                  width: "100%",
+                  marginBottom: 10,
+                }}
+              />
 
-    <button
-      onClick={handleReschedule}
-      style={{
-        padding: "8px 14px",
-        background: GOLD,
-        border: "none",
-        borderRadius: 6,
-        cursor: "pointer",
-        fontWeight: 600,
-        color: "#000",
-      }}
-    >
-      Submit Reschedule
-    </button>
-  </div>
-)}
+              <button
+                onClick={handleReschedule}
+                style={{
+                  padding: "8px 14px",
+                  background: GOLD,
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  color: "#000",
+                }}
+              >
+                Submit Reschedule
+              </button>
+            </div>
+          )}
+
+        {/* Accept/Reject buttons (disabled, waiting for seller response) */}
+        {order?.reschedule_requested === true && !order?.reschedule_accepted && (
+          <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+            <button
+              disabled
+              style={{
+                padding: "8px 14px",
+                background: "#555",
+                border: "none",
+                borderRadius: 6,
+                cursor: "not-allowed",
+                fontWeight: 600,
+                color: "#aaa",
+              }}
+            >
+              Waiting for seller response
+            </button>
+          </div>
+        )}
         </div>
 
         {actionMessage && (

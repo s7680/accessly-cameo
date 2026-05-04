@@ -3,24 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { getExperienceById as getSellerExperienceById } from "@/lib/db/profile/seller/listings";
 import { useParams } from "next/navigation";
-import { saveOrderAction } from "@/lib/profile/won/listings";
+import { updateOrderByListingId } from "@/lib/db/profile/seller/listings";
+import { sendMessage as sendMessageToDB } from "@/lib/db/profile/seller/listings";
+import { supabase } from "@/lib/supabaseClient";
 
 
 
-const DUMMY_MESSAGES = [
-  {
-    id: "m1",
-    sender_role: "buyer",
-    message: "Is parking available?",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "m2",
-    sender_role: "seller",
-    message: "Yes, parking is available.",
-    created_at: new Date().toISOString(),
-  },
-];
 
 const BORDER = "#1e1e1e";
 const GOLD = "#D4AF37";
@@ -47,6 +35,7 @@ interface Order {
   reschedule_requested?: boolean;
   reschedule_datetime?: string;
   cancel_requested?: boolean;
+  cancel_accepted?: boolean | string;
 }
 
 interface Experience {
@@ -104,25 +93,36 @@ export default function SellerExperienceOrderPage() {
       setExperience(data);
       setBuyer(data?.winner || null);
       setOrder((prev: any) => prev && Object.keys(prev).length ? prev : (data?.order || {}));
+      setQueries(data?.messages || []);
       console.log("[SELLER UI ORDER]:", data?.order);
+      console.log("[SELLER MESSAGES]:", data?.messages);
     };
     loadExperience();
-
-    setQueries(DUMMY_MESSAGES);
   }, [experienceId]);
 
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
-    setQueries((prev) => [
-      ...prev,
-      {
-        id: String(Date.now()),
-        sender_role: "seller",
-        message: newMessage,
-        created_at: new Date().toISOString(),
-      },
-    ]);
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !experienceId) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user?.id) {
+      console.error("No logged in user");
+      return;
+    }
+
+    const msg = await sendMessageToDB(
+      experienceId,
+      user.id,
+      "seller",
+      newMessage
+    );
+
+    if (!msg) return;
+
+    setQueries((prev) => [...prev, msg]);
     setNewMessage("");
   };
 
@@ -130,7 +130,7 @@ export default function SellerExperienceOrderPage() {
     setUpdating(true);
     setMessage(null);
 
-    const updated = await saveOrderAction(experience.id, {
+    const updated = await updateOrderByListingId(experience.id, {
       status: newStatus,
     });
 
@@ -176,6 +176,9 @@ export default function SellerExperienceOrderPage() {
     return <div style={{ color: "#fff", padding: 40 }}>Loading...</div>;
   }
 
+  // Debug log for order status
+  console.log("[ORDER STATUS]:", order?.status);
+
   return (
     <div style={{ background: BG, minHeight: "100vh", color: "#fff", padding: "40px 60px" }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -192,6 +195,34 @@ export default function SellerExperienceOrderPage() {
       <div style={{ marginBottom: 12, fontSize: 12, color: "#888" }}>
         Debug experience_id: {experienceId || "No ID received"}
       </div>
+
+      {/* Broadcast Banner for Cancellation Info */}
+      {(order?.cancel_requested === true ||
+        order?.cancel_accepted === "Yes" ||
+        order?.cancel_accepted === true ||
+        order?.status === "cancelled") && (
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 10,
+            marginBottom: 20,
+            background: "#ef444420",
+            border: "1px solid #ef4444",
+            color: "#ef4444",
+            fontWeight: 700,
+            fontSize: 18,
+            textAlign: "center",
+          }}
+        >
+          {order?.cancel_requested === true
+            ? "Cancellation: Booking Cancelled by You"
+            : (order?.cancel_accepted === "Yes" || order?.cancel_accepted === true)
+            ? "Cancellation: Booking Cancelled by You"
+            : order?.status === "cancelled"
+            ? "Cancellation: Booking Cancelled"
+            : ""}
+        </div>
+      )}
 
       {/* Message Alert */}
       {message && (
@@ -282,64 +313,86 @@ export default function SellerExperienceOrderPage() {
             </p>
             <div style={{ marginTop: 10 }}>
               <p style={{ marginBottom: 6 }}>
-                <strong>Reschedule Requested:</strong> {order?.reschedule_requested ? (order?.reschedule_datetime ? new Date(order.reschedule_datetime).toLocaleString() : "Requested") : "N.A"}
+                <strong>Reschedule:</strong> 
+                {order?.reschedule_requested
+                  ? order?.reschedule_accepted === "Yes"
+                    ? "You accepted reschedule"
+                    : order?.reschedule_accepted === "No"
+                    ? "You rejected reschedule"
+                    : order?.reschedule_datetime
+                    ? new Date(order.reschedule_datetime).toLocaleString()
+                    : "Requested"
+                  : "N.A"}
               </p>
 
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={async () => {
-                    const updated = await saveOrderAction(experience.id, {
-                      reschedule_requested: false,
-                      status: "confirmed",
-                    });
+              {order?.reschedule_requested === true && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    disabled={order?.reschedule_accepted !== undefined && order?.reschedule_accepted !== null}
+                    onClick={async () => {
+                      const updated = await updateOrderByListingId(experience.id, {
+                        reschedule_accepted: "Yes",
+                        status: "confirmed",
+                      });
 
-                    if (updated) {
-                      setOrder((prev: any) => ({ ...prev, ...updated }));
-                      setMessage({ type: "success", text: "Reschedule accepted" });
-                    }
-                  }}
-                  style={{
-                    padding: "6px 12px",
-                    background: GOLD,
-                    border: "none",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    color: "#000",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  Accept
-                </button>
+                      if (updated) {
+                        setOrder((prev: any) => ({ ...prev, ...updated }));
+                        setMessage({ type: "success", text: "Reschedule accepted" });
+                      }
+                    }}
+                    style={{
+                      padding: "6px 12px",
+                      background: GOLD,
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: (order?.reschedule_accepted !== undefined && order?.reschedule_accepted !== null) ? "not-allowed" : "pointer",
+                      color: "#000",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      opacity: (order?.reschedule_accepted !== undefined && order?.reschedule_accepted !== null) ? 0.5 : 1,
+                    }}
+                  >
+                    Accept
+                  </button>
 
-                <button
-                  onClick={async () => {
-                    const updated = await saveOrderAction(experience.id, {
-                      reschedule_requested: false,
-                    });
+                  <button
+                    disabled={order?.reschedule_accepted !== undefined && order?.reschedule_accepted !== null}
+                    onClick={async () => {
+                      const updated = await updateOrderByListingId(experience.id, {
+                        reschedule_accepted: "No",
+                      });
 
-                    if (updated) {
-                      setOrder((prev: any) => ({ ...prev, ...updated }));
-                      setMessage({ type: "error", text: "Reschedule rejected" });
-                    }
-                  }}
-                  style={{
-                    padding: "6px 12px",
-                    background: "transparent",
-                    border: "1px solid #ef4444",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    color: "#ef4444",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  Reject
-                </button>
-              </div>
+                      if (updated) {
+                        setOrder((prev: any) => ({ ...prev, ...updated }));
+                        setMessage({ type: "error", text: "Reschedule rejected" });
+                      }
+                    }}
+                    style={{
+                      padding: "6px 12px",
+                      background: "transparent",
+                      border: "1px solid #ef4444",
+                      borderRadius: 6,
+                      cursor: (order?.reschedule_accepted !== undefined && order?.reschedule_accepted !== null) ? "not-allowed" : "pointer",
+                      color: "#ef4444",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      opacity: (order?.reschedule_accepted !== undefined && order?.reschedule_accepted !== null) ? 0.5 : 1,
+                    }}
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
             </div>
             <p style={{ marginTop: 6, color: "#ef4444" }}>
-              <strong>Cancellation:</strong> {order?.cancel_requested ? "Requested" : "N.A"}
+              <strong>Cancellation:</strong>{" "}
+              {order?.cancel_requested
+                ? (order?.cancel_accepted === "Yes" || order?.cancel_accepted === true)
+                  ? "Booking Cancelled by You"
+                  : order?.cancel_accepted === "No"
+                  ? "Cancellation rejected"
+                  : "Booking Cancelled by Fan"
+                : "N.A"}
             </p>
           </div>
         </div>
@@ -372,34 +425,6 @@ export default function SellerExperienceOrderPage() {
               </span>
             </div>
 
-            {/* Status Timeline */}
-            <div style={{ marginBottom: 24 }}>
-              {(["confirmed", "completed"] as OrderStatus[]).map((status, idx) => {
-                const isCompleted =
-                  order?.status === status ||
-                  (status === "confirmed" && ["confirmed", "completed"].includes(order?.status));
-                const isActive = order?.status === status;
-                return (
-                  <div key={idx} style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
-                    <div
-                      style={{
-                        width: 32, height: 32, borderRadius: "50%",
-                        background: isCompleted ? GOLD : BORDER,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        marginRight: 12, fontSize: 14,
-                      }}
-                    >
-                      {isCompleted ? "✓" : idx + 1}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, fontWeight: isCompleted ? 600 : 400, color: isActive ? GOLD : "#fff" }}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
 
             {/* Action Buttons */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -416,14 +441,48 @@ export default function SellerExperienceOrderPage() {
                   Confirm Booking
                 </button>
               )}
-              {order?.status === "confirmed" && (
+              {/* --- Robust and fallback logic for Mark as Completed button --- */}
+              {(order && order?.status !== "completed" && order?.status !== "cancelled") && (
                 <button
-                  onClick={() => updateOrderStatus("completed")}
-                  disabled={updating}
+                  onClick={async () => {
+                    const updated = await updateOrderByListingId(experience.id, {
+                      status: "completed",
+                      order_completed: "Yes",
+                    });
+
+                    if (updated) {
+                      setOrder((prev: any) => ({ ...prev, ...updated }));
+                      setMessage({ type: "success", text: "Order marked as completed" });
+                    }
+                  }}
+                  disabled={
+                    updating ||
+                    order?.order_completed === "Yes" ||
+                    order?.cancel_accepted === "Yes" ||
+                    order?.cancel_accepted === true ||
+                    order?.cancel_requested === true
+                  }
                   style={{
-                    padding: "10px 20px", background: GOLD, border: "none",
-                    borderRadius: 6, cursor: updating ? "not-allowed" : "pointer",
-                    fontWeight: 600, color: "#000",
+                    padding: "10px 20px",
+                    background: GOLD,
+                    border: "none",
+                    borderRadius: 6,
+                    cursor: (
+                      updating ||
+                      order?.order_completed === "Yes" ||
+                      order?.cancel_accepted === "Yes" ||
+                      order?.cancel_accepted === true ||
+                      order?.cancel_requested === true
+                    ) ? "not-allowed" : "pointer",
+                    fontWeight: 600,
+                    color: "#000",
+                    opacity: (
+                      updating ||
+                      order?.order_completed === "Yes" ||
+                      order?.cancel_accepted === "Yes" ||
+                      order?.cancel_accepted === true ||
+                      order?.cancel_requested === true
+                    ) ? 0.5 : 1,
                   }}
                 >
                   Mark as Completed
@@ -431,12 +490,26 @@ export default function SellerExperienceOrderPage() {
               )}
               {order?.status !== "cancelled" && order?.status !== "completed" && (
                 <button
-                  onClick={() => updateOrderStatus("cancelled")}
-                  disabled={updating}
+                  onClick={async () => {
+                    const updated = await updateOrderByListingId(experience.id, {
+                      cancel_accepted: true,
+                      status: "cancelled",
+                    });
+
+                    if (updated) {
+                      setOrder((prev: any) => ({ ...prev, ...updated }));
+                      setMessage({ type: "success", text: "You have cancelled the order" });
+                    }
+                  }}
+                  disabled={updating || order?.cancel_accepted === "Yes" || order?.cancel_accepted === true || order?.cancel_requested === true}
                   style={{
-                    padding: "10px 20px", background: "transparent",
-                    border: `1px solid #ef4444`, borderRadius: 6,
-                    cursor: updating ? "not-allowed" : "pointer", color: "#ef4444",
+                    padding: "10px 20px",
+                    background: "transparent",
+                    border: `1px solid #ef4444`,
+                    borderRadius: 6,
+                    cursor: (updating || order?.cancel_accepted === "Yes" || order?.cancel_accepted === true || order?.cancel_requested === true) ? "not-allowed" : "pointer",
+                    color: "#ef4444",
+                    opacity: (updating || order?.cancel_accepted === "Yes" || order?.cancel_accepted === true || order?.cancel_requested === true) ? 0.5 : 1,
                   }}
                 >
                   Cancel Booking
@@ -457,13 +530,13 @@ export default function SellerExperienceOrderPage() {
           >
             <h3 style={{ fontSize: 16, marginBottom: 12, color: GOLD }}>Order Summary</h3>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span>Experience Price:</span>
+              <span>Winning Bid:</span>
               <span>₹{order?.amount?.toLocaleString()}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span>Payment Status:</span>
-              <span style={{ color: order?.payment_status === "paid" ? "#22c55e" : "#f59e0b" }}>
-                {order?.payment_status?.toUpperCase()}
+              <span style={{ color: "#22c55e" }}>
+                PAID
               </span>
             </div>
             <div
@@ -475,6 +548,9 @@ export default function SellerExperienceOrderPage() {
               <span><strong>Total</strong></span>
               <span><strong style={{ color: GOLD }}>₹{order?.amount?.toLocaleString()}</strong></span>
             </div>
+            <p style={{ fontSize: 12, marginTop: 8 }}>
+              <strong>Order Completed:</strong> {order?.order_completed || "No"}
+            </p>
             <p style={{ fontSize: 11, color: "#666", marginTop: 12 }}>
               Order placed: {formatDate(order?.created_at)}
             </p>
