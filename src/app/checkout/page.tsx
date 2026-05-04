@@ -1,5 +1,8 @@
 "use client";
 
+"use client";
+
+import { Suspense } from "react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -54,15 +57,20 @@ function Button({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const typeParam = searchParams.get("type");
+  
+type CheckoutData = {
+  type: "drop" | "experience";
+  raw: any;
+};
 
-  const [data, setData] = useState<any>(null);
+const [data, setData] = useState<CheckoutData | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -482,10 +490,12 @@ export default function CheckoutPage() {
             </div>
 
             <div className="co-card-body">
-              <div className="co-card-tag">
-                <span>{tag.icon}</span>
-                {tag.label}
-              </div>
+              {tag && (
+                <div className="co-card-tag">
+                  <span>{tag.icon}</span>
+                  {tag.label}
+                </div>
+              )}
 
               <h2 className="co-card-title">
                 {data.type === "drop"
@@ -506,11 +516,11 @@ export default function CheckoutPage() {
               )}
 
               {data.type === "drop" && (
-                <DropDetails drop={data.raw} />
+                <DropDetails {...data.raw} />
               )}
 
               {data.type === "experience" && (
-                <ExperienceDetails experience={data.raw} />
+                <ExperienceDetails {...data.raw} />
               )}
             </div>
           </div>
@@ -565,5 +575,13 @@ export default function CheckoutPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 20, color: "white" }}>Loading...</div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }

@@ -81,15 +81,23 @@ export default function BidPage({
     })();
   }, [data?.id, type]);
 
-  useEffect(() => {
-    if (!data?.id) return;
-    const unsubscribe = subscribeToBids(data.id, type, async (b) => {
-      setCurrentBid((prev) => Math.max(prev, b.amount));
+useEffect(() => {
+  if (!data?.id) return;
+
+  const unsubscribe = subscribeToBids(data.id, type, (b) => {
+    setCurrentBid((prev) => Math.max(prev, b.amount));
+
+    // handle async separately
+    (async () => {
       const lb = await getLeaderboard(data.id, type);
       setLeaderboard(lb);
-    });
-    return () => unsubscribe();
-  }, [data?.id, type]);
+    })();
+  });
+
+  return () => {
+    unsubscribe();
+  };
+}, [data?.id, type]);
 
   useEffect(() => {
     if (!data?.id) return;
@@ -159,8 +167,8 @@ export default function BidPage({
     startingBid: item.startingBid,
     minIncrement: item.minIncrement,
     totalBids: item.totalBids,
-    startTime: data.start_datetime,
-    endTime: data.end_datetime,
+    // startTime={item.startTime},  <-- REMOVED
+    // endTime={item.endTime},      <-- REMOVED
     currency: "INR" as const,
     reserveMet: item.reserveMet,
     onBid: async (amount: number) => {
@@ -283,15 +291,12 @@ export default function BidPage({
                   reviewCount={item.reviewCount}
                   listingTitle={item.title}
                   listingId={`#EXP-${safeId}`}
-                  startTime={item.startTime}
-                  endTime={item.endTime}
                   isFollowing={false}
                   type={item.type}
                 />
                 <ExperienceDetails
                   name={data.display_name}
                   story={data.about_experience}
-                  image={data.display_image}
                   date={data.experience_date || data.start_datetime}
                   duration={data.duration ? `${data.duration} mins` : ""}
                   location={data.location}
@@ -320,8 +325,6 @@ export default function BidPage({
                   reviewCount={item.reviewCount}
                   listingTitle={item.title}
                   listingId={`#DROP-${safeId}`}
-                  startTime={item.startTime}
-                  endTime={item.endTime}
                   isFollowing={false}
                   type={item.type}
                 />

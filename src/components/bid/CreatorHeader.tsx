@@ -14,7 +14,6 @@ interface CreatorHeaderProps {
   reviewCount: number;
   listingTitle: string;
   listingId: string;
-  endTime: Date | null;
   isFollowing?: boolean;
 }
 
@@ -36,7 +35,6 @@ export default function CreatorHeader({
   reviewCount,
   listingTitle,
   listingId,
-  endTime,
   isFollowing: initialFollow = false,
 }: CreatorHeaderProps) {
   // Safety guard

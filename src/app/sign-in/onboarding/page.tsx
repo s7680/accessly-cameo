@@ -113,7 +113,7 @@ export default function OnboardingPage() {
 
     const { error: insertError } = await upsertUser({
       id: user.id,
-      email: user.email,
+      email: user.email || null,
       name: fullName.trim(),
       mobile: mobile.trim(),
       instagram: instagram.trim() || null,

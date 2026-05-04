@@ -73,7 +73,7 @@ export default function HomePage() {
       {/* ── Section 2: Personalised Videos ───────────────────────────── */}
       <SectionWrapper
         id="videos"
-        eyebrow={<span className="section-eyebrow--highlight">① Personalised Video Messages</span>}
+        eyebrow="① Personalised Video Messages"
         title="A message that lasts forever."
         subtitle="Request a personalised video directly from your favourite creators. Perfect for birthdays, surprises, or meaningful moments — delivered just for you."
         titleAlign="left"
@@ -89,7 +89,7 @@ export default function HomePage() {
       {/* ── Section 3: Drops ─────────────────────────────────────────── */}
       <SectionWrapper
         id="drops"
-        eyebrow={<span className="section-eyebrow--highlight">② Drops — Limited Edition Collectibles</span>}
+        eyebrow="② Drops — Limited Edition Collectibles"
         title={<>Own something <em>truly</em> rare.</>}
         subtitle="Own exclusive items directly from creators — signed memorabilia, rare collectibles, and one-time drops. Bid or buy before they’re gone forever."
         titleAlign="left"
@@ -123,7 +123,7 @@ export default function HomePage() {
       {/* ── Section 4: Experiences ────────────────────────────────────── */}
       <SectionWrapper
         id="experiences"
-        eyebrow={<span className="section-eyebrow--highlight">③ Experiences — Live & In-Person</span>}
+        eyebrow="③ Experiences — Live & In-Person"
         title="Be in the room where it happens."
         subtitle="Access real-world experiences with creators — meet them, train with them, or join exclusive events. Limited spots, real access."
         titleAlign="left"

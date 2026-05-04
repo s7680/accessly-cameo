@@ -160,7 +160,7 @@ export default function ProfilePage() {
           />
         ) : (
           <CreatorSection
-            requests={mockRequests}
+   
             listings={listings.length ? listings : []}
           />
         )}

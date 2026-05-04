@@ -419,7 +419,7 @@ export default function BidPanel({
       </div>
 
       {/* Timer */}
-      {timer.status !== "idle" && (
+      {timer.status && (
         <div style={{
           padding: "16px 20px",
           borderBottom: "1px solid #1e1e1e",

@@ -274,7 +274,7 @@ export default function OnboardingPage() {
         occasions: form.occasions ? form.occasions.split(",") : [],
         files,
         instructions: form.instructions,
-        displayImage: form.displayImage,
+        displayImage: form.displayImage || undefined,
       });
     }
 
@@ -300,9 +300,7 @@ export default function OnboardingPage() {
         startDateTime: form.startDate && form.startTime ? `${form.startDate} ${form.startTime}` : undefined,
         endDateTime: form.endDate && form.endTime ? `${form.endDate} ${form.endTime}` : undefined,
 
-        // Explicit time fields (fix missing DB mapping)
-        startTime: form.startTime || form.experienceStartTime || undefined,
-        endTime: form.endTime || form.experienceEndTime || undefined,
+
 
         startingBid: form.startingBid ? Number(form.startingBid) : undefined,
         fixedPrice: form.fixedPrice ? Number(form.fixedPrice) : undefined,
@@ -331,9 +329,6 @@ export default function OnboardingPage() {
         durationType: form.experienceDurationType,
         experienceDate: form.experienceDate,
         startTime: form.experienceStartTime || form.startTime,
-        endTime: form.experienceEndTime || form.endTime,
-        duration:
-          (Number(form.experienceHours || 0) * 60) + Number(form.experienceMinutes || 0) || undefined,
         startDate: form.experienceStartDate || form.startDate,
         endDate: form.experienceEndDate || form.endDate,
         guests: form.guests ? Number(form.guests) : undefined,
@@ -431,6 +426,9 @@ export default function OnboardingPage() {
             deliveryTime: "",
             instructions: "",
             media: [],
+            displayImage: null,
+            displayName: "",
+            bio: "",
             story: "",
             pricingMode: "bid",
             itemName: "",
@@ -997,7 +995,7 @@ export default function OnboardingPage() {
                   <input
                     className={`ob-input ${errors.itemName ? "ob-input--error" : ""}`}
                     type="text"
-                    placeholder={form.selectedType === "drops" ? "e.g. 2023 IPL Final Jersey" : "e.g. Private Dinner in Mumbai"}
+                    placeholder="e.g. Private Dinner in Mumbai"
                     value={form.itemName}
                     onChange={(e) => { set("itemName", e.target.value); clearError("itemName"); }}
                   />
@@ -1142,7 +1140,7 @@ export default function OnboardingPage() {
                       <input
                         className={`ob-input ${errors.itemName ? "ob-input--error" : ""}`}
                         type="text"
-                        placeholder={form.selectedType === "drops" ? "e.g. 2023 IPL Final Jersey" : "e.g. Private Dinner in Mumbai"}
+                        placeholder="e.g. Private Dinner in Mumbai"
                         value={form.itemName}
                         onChange={(e) => { set("itemName", e.target.value); clearError("itemName"); }}
                       />

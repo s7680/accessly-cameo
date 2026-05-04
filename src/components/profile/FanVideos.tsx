@@ -1,38 +1,11 @@
 // src/components/profile/FanVideos.tsx
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { getFanVideoRequests } from "@/lib/db/videoRequests";
+import { useState } from "react";
 
-export default function FanVideos() {
-  const [videos, setVideos] = useState<any[]>([]);
+type Props = {
+  videos: any[];
+};
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      const requests = await getFanVideoRequests(user.id);
-
-      const formatted = requests.map((r: any) => ({
-        id: r.id,
-        title: "Video Request",
-        creatorName: r.users?.name,
-        status: r.status,
-        recipient: r.recipient_name,
-        fromName: r.from_name,
-        occasion: r.occasion,
-        instructions: r.request_details,
-        amountPaid: r.price,
-        videoUrl: r.video_url,
-        createdAt: r.created_at,
-      }));
-
-      setVideos(formatted);
-    };
-
-    fetchData();
-  }, []);
+export default function FanVideos({ videos }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {videos.map((item) => (

@@ -34,42 +34,20 @@ function WatchlistItem({ item, onRemove, router }: WatchlistItemProps) {
     </div>
   );
 
-  if (item.type === "video") {
+  if (item.item_type === "video") {
     return (
       <div className="wl-card">
-        <CreatorCard
-          creator={{
-            id: item.id,
-            name: item.creator,
-            image: item.image,
-            price: item.price,
-          }}
-        />
-        {actionRow(`/videos/${item.id}`)}
+        <p>Video ID: {item.item_id}</p>
+        {actionRow(`/videos/${item.item_id}`)}
       </div>
     );
   }
 
-  if (item.type === "drop") {
+  if (item.item_type === "drop") {
     return (
       <div className="wl-card">
-        <DropCard
-          drop={{
-            id: item.id,
-            title: item.title,
-            description: "",
-            category: "collectible",
-            image: item.image,
-            edition: "1/1",
-            creatorName: item.creator,
-            creatorAvatar: "",
-            currentBid: item.price,
-            totalBids: 5,
-            endsIn: new Date(Date.now() + 86400000).toISOString(),
-            buyNowPrice: item.price,
-          }}
-        />
-        {actionRow(`/drops/${item.id}`)}
+        <p>Drop ID: {item.item_id}</p>
+        {actionRow(`/drops/${item.item_id}`)}
       </div>
     );
   }

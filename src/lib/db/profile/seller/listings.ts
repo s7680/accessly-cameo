@@ -91,7 +91,7 @@ export async function getExperienceById(experienceId: string) {
   }
 
   // Fetch messages for this listing
-  let messages = [];
+  let messages: any[] = [];
 
   const { data: messagesData, error: messagesError } = await supabase
     .from("messages")

@@ -15,8 +15,8 @@ export default function CreatorCard({ creator, variant = "default" }: CreatorCar
   const [wishlisted, setWishlisted] = useState(false);
 
   const imgSrc =
-    !imgError && (creator.display_image || (creator as any).displayImage || creator.avatar || creator.image)
-      ? creator.display_image || (creator as any).displayImage || creator.avatar || creator.image
+    !imgError && ((creator as any).display_image || (creator as any).displayImage || creator.avatar || creator.image)
+      ? (creator as any).display_image || (creator as any).displayImage || creator.avatar || creator.image
       : `https://ui-avatars.com/api/?name=${encodeURIComponent(creator.name)}&background=1e1e1e&color=888&size=400`;
 
   const has24hr = creator.deliveryHours != null && creator.deliveryHours <= 24;

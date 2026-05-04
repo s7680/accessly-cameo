@@ -161,14 +161,11 @@ export default function ExperiencesPage() {
                     id: exp.id,
                     title: exp.display_name,
                     description: exp.about_experience || "",
+                    date: exp.experience_date || exp.start_date || null,
+                    duration: exp.duration ? `${exp.duration} mins` : "",
                     category: exp.category,
                     image: exp.display_image,
 
-                    // core fields (as per requirement)
-                    name: exp.display_name,
-                    story: exp.about_experience,
-                    date: exp.experience_date || exp.start_datetime,
-                    duration: exp.duration ? `${exp.duration} mins` : "",
 
                     creatorName: exp.display_name,
                     creatorAvatar: exp.display_image || "",

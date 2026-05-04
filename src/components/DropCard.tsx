@@ -45,7 +45,7 @@ export default function DropCard({ drop }: DropCardProps) {
   const [user, setUser] = useState<any>(null);
 
   if (!drop) return null;
-  const mode = (drop.pricing_mode || "bid").toLowerCase();
+  const mode = ((drop as any).pricing_mode || (drop as any).pricingMode || "bid").toLowerCase();
 
   // Use a safe fallback for endsIn if missing or invalid
   const safeEndsIn =
@@ -85,8 +85,8 @@ export default function DropCard({ drop }: DropCardProps) {
 
   const handleWatch = async () => {
     if (!user) return;
-    const status = await toggleWatchlist(user.id, drop.id, "drop");
-    setIsWatching(status);
+    await toggleWatchlist(user.id, drop.id, !isWatching);
+    setIsWatching((prev) => !prev);
   };
 
   return (

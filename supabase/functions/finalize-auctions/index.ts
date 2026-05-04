@@ -1,7 +1,10 @@
+// @ts-ignore - Deno remote import not recognized by Next.js TypeScript
 import { createClient } from "https://esm.sh/@supabase/supabase-js";
 
 const supabase = createClient(
+  // @ts-ignore - Deno global not recognized by Next.js TypeScript
   Deno.env.get("SUPABASE_URL")!,
+  // @ts-ignore - Deno global not recognized by Next.js TypeScript
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
@@ -105,6 +108,7 @@ async function finalizeTable(table: "drops_form" | "experiences_form", type: "dr
   }
 }
 
+// @ts-ignore - Deno global not recognized by Next.js TypeScript
 Deno.serve(async () => {
   await finalizeTable("drops_form", "drop");
   await finalizeTable("experiences_form", "experience");

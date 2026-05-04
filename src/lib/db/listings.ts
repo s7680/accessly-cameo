@@ -268,7 +268,7 @@ export async function createListing(payload: ListingPayload) {
   console.log("CREATE LISTING CALLED");
   console.log("PAYLOAD TYPE:", payload.type);
   console.log("INSTAGRAM IN PAYLOAD:", payload.instagramLink);
-  const normalizedType = payload.type === "drops" ? "drop" : payload.type === "experiences" ? "experience" : payload.type;
+  const normalizedType = payload.type;
   // 1. upload display image
   let displayImageUrl = null;
 
