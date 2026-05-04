@@ -11,10 +11,10 @@ import { useEffect, useState } from "react";
 import { getCreatorCards } from "@/lib/db/videos";
 
 export default function HomePage() {
-  const [drops, setDrops] = useState<any[]>([]);
-  const [allCreators, setAllCreators] = useState<any[]>([]);
+  const [drops, setDrops] = useState<any[] | null>(null);
+  const [allCreators, setAllCreators] = useState<any[] | null>(null);
   const [featuredCreators, setFeaturedCreators] = useState<any[]>([]);
-  const [experiences, setExperiences] = useState<any[]>([]);
+  const [experiences, setExperiences] = useState<any[] | null>(null);
 
   useEffect(() => {
     async function loadDrops() {
@@ -96,25 +96,31 @@ export default function HomePage() {
         action={<Button href="/drops" variant="secondary">Browse All Drops</Button>}
       >
         <div className="card-grid card-grid--3">
-          {drops.map((drop) => (
-            <DropCard
-              key={drop.id}
-              drop={{
-                id: drop?.id || "",
-                title: drop?.item_name || "Untitled",
-                creatorName: drop?.display_name || "Unknown",
-                creatorAvatar: drop?.display_image || "",
-                category: drop?.category || "General",
-                currentBid: Number(drop?.starting_bid) || 0,
-                buyNowPrice: drop?.fixed_price ? Number(drop.fixed_price) : null,
-                totalBids: 0,
-                endsIn: drop?.end_datetime || null,
-                image: drop?.display_image || "",
-                description: drop?.product_details || "",
-                edition: "1 of 1",
-              }}
-            />
-          ))}
+          {drops === null ? (
+            <p>Loading...</p>
+          ) : drops.length === 0 ? (
+            <p>No drops found</p>
+          ) : (
+            drops.map((drop) => (
+              <DropCard
+                key={drop.id}
+                drop={{
+                  id: drop?.id || "",
+                  title: drop?.item_name || "Untitled",
+                  creatorName: drop?.display_name || "Unknown",
+                  creatorAvatar: drop?.display_image || "",
+                  category: drop?.category || "General",
+                  currentBid: Number(drop?.starting_bid) || 0,
+                  buyNowPrice: drop?.fixed_price ? Number(drop.fixed_price) : null,
+                  totalBids: 0,
+                  endsIn: drop?.end_datetime || null,
+                  image: drop?.display_image || "",
+                  description: drop?.product_details || "",
+                  edition: "1 of 1",
+                }}
+              />
+            ))
+          )}
         </div>
       </SectionWrapper>
 
@@ -128,31 +134,37 @@ export default function HomePage() {
         action={<Button href="/experiences" variant="secondary">All Experiences</Button>}
       >
         <div className="card-grid card-grid--3">
-          {experiences.map((exp) => (
-            <ExperienceCard
-              key={exp.id}
-              experience={{
-                id: exp.id,
-                title: exp.about_experience || "Experience",
-                description: exp.fan_benefits || "",
-                category: exp.category || "General",
-                image: exp.display_image || "",
-                creatorName: exp.display_name || "Unknown",
-                creatorAvatar: exp.display_image || "",
-                creatorId: exp.creator_id,
-                location: exp.location || "",
-                date: exp.experience_date || exp.start_date || null,
-                duration: exp.duration_minutes ? `${exp.duration_minutes} mins` : "",
-                pricingMode: "buyNow",
-                capacity: exp.guests || 0,
-                spotsLeft: exp.guests || 0,
-                buyNowPrice: 0,
-                currentBid: null,
-                endsIn: null,
-                tags: [exp.category || "General"],
-              }}
-            />
-          ))}
+          {experiences === null ? (
+            <p>Loading...</p>
+          ) : experiences.length === 0 ? (
+            <p>No experiences found</p>
+          ) : (
+            experiences.map((exp) => (
+              <ExperienceCard
+                key={exp.id}
+                experience={{
+                  id: exp.id,
+                  title: exp.about_experience || "Experience",
+                  description: exp.fan_benefits || "",
+                  category: exp.category || "General",
+                  image: exp.display_image || "",
+                  creatorName: exp.display_name || "Unknown",
+                  creatorAvatar: exp.display_image || "",
+                  creatorId: exp.creator_id,
+                  location: exp.location || "",
+                  date: exp.experience_date || exp.start_date || null,
+                  duration: exp.duration_minutes ? `${exp.duration_minutes} mins` : "",
+                  pricingMode: "buyNow",
+                  capacity: exp.guests || 0,
+                  spotsLeft: exp.guests || 0,
+                  buyNowPrice: 0,
+                  currentBid: null,
+                  endsIn: null,
+                  tags: [exp.category || "General"],
+                }}
+              />
+            ))
+          )}
         </div>
       </SectionWrapper>
 
