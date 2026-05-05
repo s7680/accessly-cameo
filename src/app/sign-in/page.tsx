@@ -9,6 +9,8 @@ export default function SignInPage() {
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [step, setStep] = useState<"email" | "otp">("email");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
   const router = useRouter();
 
@@ -34,21 +36,17 @@ export default function SignInPage() {
 
     const { error } = await supabase.auth.signInWithOtp({
       email: inputValue,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
     });
 
     setLoading(false);
 
     if (error) {
       console.error(error);
-      alert("Failed to send login link");
+      alert("Failed to send OTP");
       return;
     }
 
-    alert("Magic link sent. Check your email.");
-
+    setStep("otp");
     setCooldown(60);
 
     const interval = setInterval(() => {
@@ -74,6 +72,42 @@ export default function SignInPage() {
       console.error(error);
       alert("Google login failed");
     }
+  };
+
+  const handleOtpChange = (value: string, index: number) => {
+    if (!/^\d?$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+      const next = document.getElementById(`otp-${index + 1}`);
+      next?.focus();
+    }
+  };
+
+  const handleSubmitOtp = async () => {
+    const enteredOtp = otp.join("");
+
+    if (enteredOtp.length !== 6) {
+      alert("Enter complete OTP");
+      return;
+    }
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: inputValue,
+      token: enteredOtp,
+      type: "email",
+    });
+
+    if (error) {
+      console.error(error);
+      alert("Invalid OTP");
+      return;
+    }
+
+    router.push("/");
   };
 
   return (
@@ -267,7 +301,7 @@ export default function SignInPage() {
         <h1 className="title">Sign in to<br />Accessly</h1>
         <p className="subtitle">Enter your email to receive a login link</p>
 
-        {
+        {step === "email" && (
           <>
             <div className="input-wrap">
               <input
@@ -287,7 +321,7 @@ export default function SignInPage() {
               disabled={!isValidEmail(inputValue) || loading || cooldown > 0}
               style={{ width: "100%", minHeight: "48px" }}
             >
-              {loading ? "Sending link…" : "Send login link"}
+              {loading ? "Sending link…" : "Send OTP"}
             </Button>
 
             <div className="divider">
@@ -300,7 +334,42 @@ export default function SignInPage() {
               Continue with Google
             </button>
           </>
-        }
+        )}
+
+        {step === "otp" && (
+          <>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "16px" }}>
+              {otp.map((digit, i) => (
+                <input
+                  key={i}
+                  id={`otp-${i}`}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(e.target.value, i)}
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    textAlign: "center",
+                    fontSize: "18px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #E8E7E2",
+                    background: "#FAFAF8",
+                  }}
+                />
+              ))}
+            </div>
+
+            <Button
+              variant="primary"
+              onClick={handleSubmitOtp}
+              style={{ width: "100%", minHeight: "48px" }}
+            >
+              Verify OTP
+            </Button>
+          </>
+        )}
 
         {/* Footer */}
         <p className="footer-note">
