@@ -1,6 +1,5 @@
 import { App } from '@capacitor/app';
 import { supabase } from '@/lib/supabaseClient';
-import { Browser } from '@capacitor/browser';
 
 export const initDeepLinkHandler = () => {
   // Handle app opened from closed state (cold start)
@@ -11,7 +10,7 @@ export const initDeepLinkHandler = () => {
       if (data.url.includes('accessly://auth/callback')) {
         try {
           if (data.url.includes('#access_token')) {
-            const hash = data.url.split('#')[1];
+            const hash = data.url.split('#')[1] || '';
             const params = new URLSearchParams(hash);
 
             const access_token = params.get('access_token');
@@ -22,12 +21,13 @@ export const initDeepLinkHandler = () => {
               console.log('Session set from token (cold start)');
 
               try {
+                const { Browser } = await import('@capacitor/browser');
                 await Browser.close();
               } catch (e) {
                 console.warn('Browser close failed:', e);
               }
 
-              window.location.href = '/';
+              window.location.replace('/');
               return;
             }
           } else {
@@ -41,12 +41,13 @@ export const initDeepLinkHandler = () => {
             console.log('Cold start session established:', sessionData);
 
             try {
+              const { Browser } = await import('@capacitor/browser');
               await Browser.close();
             } catch (e) {
               console.warn('Browser close failed:', e);
             }
 
-            window.location.href = '/';
+            window.location.replace('/');
           }
         } catch (e) {
           console.error('Cold start deep link error:', e);
@@ -63,7 +64,7 @@ export const initDeepLinkHandler = () => {
     if (url.includes('accessly://auth/callback')) {
       try {
         if (url.includes('#access_token')) {
-          const hash = url.split('#')[1];
+          const hash = url.split('#')[1] || '';
           const params = new URLSearchParams(hash);
 
           const access_token = params.get('access_token');
@@ -74,12 +75,13 @@ export const initDeepLinkHandler = () => {
             console.log('Session set from token');
 
             try {
+              const { Browser } = await import('@capacitor/browser');
               await Browser.close();
             } catch (e) {
               console.warn('Browser close failed:', e);
             }
 
-            window.location.href = '/';
+            window.location.replace('/');
             return;
           }
         } else {
@@ -93,12 +95,13 @@ export const initDeepLinkHandler = () => {
           console.log('Session established:', sessionData);
 
           try {
+            const { Browser } = await import('@capacitor/browser');
             await Browser.close();
           } catch (e) {
             console.warn('Browser close failed:', e);
           }
 
-          window.location.href = '/';
+          window.location.replace('/');
         }
       } catch (e) {
         console.error('Deep link auth error:', e);
