@@ -63,26 +63,16 @@ export default function SignInPage() {
   };
 
   const handleGoogleContinue = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        skipBrowserRedirect: true,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
     if (error) {
       console.error(error);
-      return;
-    }
-
-    if (data?.url) {
-      // FORCE correct redirect
-      const url = new URL(data.url);
-      url.searchParams.set("redirect_to", "accessly://auth/callback");
-
-      console.log("Final OAuth URL:", url.toString());
-
-      window.location.href = url.toString();
+      alert("Google login failed");
     }
   };
 
