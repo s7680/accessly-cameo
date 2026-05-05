@@ -47,6 +47,7 @@ export default function SignInPage() {
       options: {
         redirectTo: "accessly://auth/callback",
         skipBrowserRedirect: true,
+        flowType: 'implicit',
       },
     });
 
