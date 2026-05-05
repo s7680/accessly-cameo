@@ -4,13 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { supabase } from "@/lib/supabaseClient";
-import { Browser } from '@capacitor/browser';
 
 export default function SignInPage() {
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const [step, setStep] = useState<"mobile" | "otp">("mobile");
-  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
   const router = useRouter();
 
@@ -27,18 +27,53 @@ export default function SignInPage() {
   // NOTE: Do NOT handle onboarding logic here.
   // Redirect decisions should be handled in /auth/callback after OAuth.
 
-  const isValidMobile = (num: string) => /^[6-9]\d{9}$/.test(num);
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleContinue = async () => {
-    if (!isValidMobile(inputValue.trim())) {
-      alert("Enter a valid 10-digit mobile number");
+    if (cooldown > 0) {
+      alert(`Wait ${cooldown}s before retry`);
       return;
     }
+    if (!isValidEmail(inputValue.trim())) {
+      alert("Enter a valid email (OTP is sent only to email)");
+      return;
+    }
+
     setLoading(true);
-    await new Promise((res) => setTimeout(res, 1000));
-    console.log("OTP sent to:", inputValue);
-    setStep("otp");
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email: inputValue,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: undefined, // prevents magic link redirect
+      },
+    });
+
     setLoading(false);
+
+    if (error) {
+      console.error(error);
+      if (error?.message?.includes("rate limit")) {
+        alert("Too many attempts. Wait 60 seconds.");
+      } else {
+        alert("Failed to send OTP");
+      }
+      return;
+    }
+
+    setStep("otp");
+    setCooldown(30);
+
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const handleGoogleContinue = async () => {
@@ -71,19 +106,33 @@ export default function SignInPage() {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    if (value && index < 3) {
+    if (value && index < 5) {
       const next = document.getElementById(`otp-${index + 1}`);
       next?.focus();
     }
   };
 
-  const handleSubmitOtp = () => {
+  const handleSubmitOtp = async () => {
     const enteredOtp = otp.join("");
-    if (enteredOtp.length !== 4) {
+
+    if (enteredOtp.length !== 6) {
       alert("Enter complete OTP");
       return;
     }
-    console.log("OTP submitted:", enteredOtp);
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: inputValue,
+      token: enteredOtp,
+      type: "email",
+    });
+
+    if (error) {
+      console.error(error);
+      alert("Invalid OTP");
+      return;
+    }
+
+    router.push("/");
   };
 
   return (
@@ -275,22 +324,17 @@ export default function SignInPage() {
 
         {/* Title */}
         <h1 className="title">Sign in to<br />Accessly</h1>
-        <p className="subtitle">Enter your mobile number to receive OTP</p>
+        <p className="subtitle">Enter your email (mobile optional)</p>
 
         {step === "mobile" && (
           <>
             <div className="input-wrap">
               <input
                 className="signin-input"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder="Mobile number"
+                type="text"
+                placeholder="Email or mobile number"
                 value={inputValue}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "");
-                  setInputValue(val.slice(0, 10));
-                }}
+                onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleContinue()}
                 disabled={loading}
               />
@@ -299,7 +343,7 @@ export default function SignInPage() {
             <Button
               variant="primary"
               onClick={handleContinue}
-              disabled={!isValidMobile(inputValue) || loading}
+              disabled={!isValidEmail(inputValue) || loading || cooldown > 0}
               style={{ width: "100%", minHeight: "48px" }}
             >
               {loading ? "Sending OTP…" : "Send OTP"}
