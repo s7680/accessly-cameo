@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { supabase } from "@/lib/supabaseClient";
+import { Browser } from '@capacitor/browser';
 
 export default function SignInPage() {
   const [inputValue, setInputValue] = useState("");
@@ -41,16 +42,23 @@ export default function SignInPage() {
   };
 
   const handleGoogleContinue = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: "accessly://auth/callback",
+        skipBrowserRedirect: true,
       },
     });
 
     if (error) {
       console.error(error);
       alert("Google sign-in failed");
+      return;
+    }
+
+    // Open system browser explicitly
+    if (data?.url) {
+      await Browser.open({ url: data.url });
     }
   };
 
