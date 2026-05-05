@@ -41,7 +41,7 @@ export default function SignInPage() {
   };
 
   const handleGoogleContinue = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -51,12 +51,6 @@ export default function SignInPage() {
     if (error) {
       console.error(error);
       alert("Google sign-in failed");
-      return;
-    }
-
-    // Force redirect for mobile/WebView reliability
-    if (data?.url) {
-      window.location.href = data.url;
     }
   };
 
