@@ -96,7 +96,7 @@ export default function SignInPage() {
 
       console.log("Final OAuth URL:", url.toString());
 
-      await Browser.open({ url: url.toString() });
+      window.location.href = url.toString();
     }
   };
 
