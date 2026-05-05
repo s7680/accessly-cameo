@@ -29,7 +29,7 @@
                 <data
                     android:scheme="accessly"
                     android:host="auth"
-                    android:path="/callback" />
+                    android:pathPrefix="/callback" />
             </intent-filter>
 
         </activity>
