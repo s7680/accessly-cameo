@@ -9,20 +9,9 @@ export default function SignInPage() {
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [step, setStep] = useState<"mobile" | "otp">("mobile");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
   const router = useRouter();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        router.replace("/sign-in/onboarding");
-      }
-    };
-    checkUser();
-  }, []);
 
   // NOTE: Do NOT handle onboarding logic here.
   // Redirect decisions should be handled in /auth/callback after OAuth.
@@ -35,8 +24,9 @@ export default function SignInPage() {
       alert(`Wait ${cooldown}s before retry`);
       return;
     }
+
     if (!isValidEmail(inputValue.trim())) {
-      alert("Enter a valid email (OTP is sent only to email)");
+      alert("Enter a valid email");
       return;
     }
 
@@ -45,8 +35,7 @@ export default function SignInPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email: inputValue,
       options: {
-        shouldCreateUser: true,
-        emailRedirectTo: undefined, // prevents magic link redirect
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -54,16 +43,13 @@ export default function SignInPage() {
 
     if (error) {
       console.error(error);
-      if (error?.message?.includes("rate limit")) {
-        alert("Too many attempts. Wait 60 seconds.");
-      } else {
-        alert("Failed to send OTP");
-      }
+      alert("Failed to send login link");
       return;
     }
 
-    setStep("otp");
-    setCooldown(30);
+    alert("Magic link sent. Check your email.");
+
+    setCooldown(60);
 
     const interval = setInterval(() => {
       setCooldown((prev) => {
@@ -98,41 +84,6 @@ export default function SignInPage() {
 
       window.location.href = url.toString();
     }
-  };
-
-  const handleOtpChange = (value: string, index: number) => {
-    if (!/^\d?$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    if (value && index < 5) {
-      const next = document.getElementById(`otp-${index + 1}`);
-      next?.focus();
-    }
-  };
-
-  const handleSubmitOtp = async () => {
-    const enteredOtp = otp.join("");
-
-    if (enteredOtp.length !== 6) {
-      alert("Enter complete OTP");
-      return;
-    }
-
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: inputValue,
-      token: enteredOtp,
-      type: "email",
-    });
-
-    if (error) {
-      console.error(error);
-      alert("Invalid OTP");
-      return;
-    }
-
-    router.push("/");
   };
 
   return (
@@ -324,15 +275,15 @@ export default function SignInPage() {
 
         {/* Title */}
         <h1 className="title">Sign in to<br />Accessly</h1>
-        <p className="subtitle">Enter your email (mobile optional)</p>
+        <p className="subtitle">Enter your email to receive a login link</p>
 
-        {step === "mobile" && (
+        {
           <>
             <div className="input-wrap">
               <input
                 className="signin-input"
                 type="text"
-                placeholder="Email or mobile number"
+                placeholder="Email"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleContinue()}
@@ -346,7 +297,7 @@ export default function SignInPage() {
               disabled={!isValidEmail(inputValue) || loading || cooldown > 0}
               style={{ width: "100%", minHeight: "48px" }}
             >
-              {loading ? "Sending OTP…" : "Send OTP"}
+              {loading ? "Sending link…" : "Send login link"}
             </Button>
 
             <div className="divider">
@@ -359,42 +310,7 @@ export default function SignInPage() {
               Continue with Google
             </button>
           </>
-        )}
-
-        {step === "otp" && (
-          <>
-            <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "16px" }}>
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  id={`otp-${i}`}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(e.target.value, i)}
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                    textAlign: "center",
-                    fontSize: "18px",
-                    borderRadius: "10px",
-                    border: "1.5px solid #E8E7E2",
-                    background: "#FAFAF8",
-                  }}
-                />
-              ))}
-            </div>
-
-            <Button
-              variant="primary"
-              onClick={handleSubmitOtp}
-              style={{ width: "100%", minHeight: "48px" }}
-            >
-              Submit OTP
-            </Button>
-          </>
-        )}
+        }
 
         {/* Footer */}
         <p className="footer-note">
