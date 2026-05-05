@@ -9,16 +9,29 @@ export const initDeepLinkHandler = () => {
 
       if (data.url.includes('accessly://auth/callback')) {
         try {
-          const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(data.url);
+          if (data.url.includes('#access_token')) {
+            const hash = data.url.split('#')[1];
+            const params = new URLSearchParams(hash);
 
-          if (error) {
-            console.error('Cold start session exchange failed:', error);
-            return;
+            const access_token = params.get('access_token');
+            const refresh_token = params.get('refresh_token');
+
+            if (access_token && refresh_token) {
+              await supabase.auth.setSession({ access_token, refresh_token });
+              console.log('Session set from token (cold start)');
+              window.location.href = '/';
+            }
+          } else {
+            const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(data.url);
+
+            if (error) {
+              console.error('Cold start session exchange failed:', error);
+              return;
+            }
+
+            console.log('Cold start session established:', sessionData);
+            window.location.href = '/';
           }
-
-          console.log('Cold start session established:', sessionData);
-
-          window.location.href = '/';
         } catch (e) {
           console.error('Cold start deep link error:', e);
         }
@@ -33,17 +46,29 @@ export const initDeepLinkHandler = () => {
     // Handle both code and token based redirects
     if (url.includes('accessly://auth/callback')) {
       try {
-        const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(url);
+        if (url.includes('#access_token')) {
+          const hash = url.split('#')[1];
+          const params = new URLSearchParams(hash);
 
-        if (error) {
-          console.error('Session exchange failed:', error);
-          return;
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+
+          if (access_token && refresh_token) {
+            await supabase.auth.setSession({ access_token, refresh_token });
+            console.log('Session set from token');
+            window.location.href = '/';
+          }
+        } else {
+          const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(url);
+
+          if (error) {
+            console.error('Session exchange failed:', error);
+            return;
+          }
+
+          console.log('Session established:', sessionData);
+          window.location.href = '/';
         }
-
-        console.log('Session established:', sessionData);
-
-        // Force navigation after login
-        window.location.href = '/';
       } catch (e) {
         console.error('Deep link auth error:', e);
       }
