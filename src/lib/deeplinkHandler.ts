@@ -1,5 +1,6 @@
 import { App } from '@capacitor/app';
 import { supabase } from '@/lib/supabaseClient';
+import { Browser } from '@capacitor/browser';
 
 export const initDeepLinkHandler = () => {
   // Handle app opened from closed state (cold start)
@@ -19,7 +20,15 @@ export const initDeepLinkHandler = () => {
             if (access_token && refresh_token) {
               await supabase.auth.setSession({ access_token, refresh_token });
               console.log('Session set from token (cold start)');
+
+              try {
+                await Browser.close();
+              } catch (e) {
+                console.warn('Browser close failed:', e);
+              }
+
               window.location.href = '/';
+              return;
             }
           } else {
             const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(data.url);
@@ -30,6 +39,13 @@ export const initDeepLinkHandler = () => {
             }
 
             console.log('Cold start session established:', sessionData);
+
+            try {
+              await Browser.close();
+            } catch (e) {
+              console.warn('Browser close failed:', e);
+            }
+
             window.location.href = '/';
           }
         } catch (e) {
@@ -56,7 +72,15 @@ export const initDeepLinkHandler = () => {
           if (access_token && refresh_token) {
             await supabase.auth.setSession({ access_token, refresh_token });
             console.log('Session set from token');
+
+            try {
+              await Browser.close();
+            } catch (e) {
+              console.warn('Browser close failed:', e);
+            }
+
             window.location.href = '/';
+            return;
           }
         } else {
           const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(url);
@@ -67,6 +91,13 @@ export const initDeepLinkHandler = () => {
           }
 
           console.log('Session established:', sessionData);
+
+          try {
+            await Browser.close();
+          } catch (e) {
+            console.warn('Browser close failed:', e);
+          }
+
           window.location.href = '/';
         }
       } catch (e) {
