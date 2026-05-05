@@ -299,7 +299,7 @@ export default function SignInPage() {
 
         {/* Title */}
         <h1 className="title">Sign in to<br />Accessly</h1>
-        <p className="subtitle">Enter your email to receive a login link</p>
+        <p className="subtitle">Enter your email to receive an OTP</p>
 
         {step === "email" && (
           <>
