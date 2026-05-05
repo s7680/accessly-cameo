@@ -59,6 +59,8 @@ export default function SignInPage() {
       const url = new URL(data.url);
       url.searchParams.set("redirect_to", "accessly://auth/callback");
 
+      console.log("Final OAuth URL:", url.toString());
+
       await Browser.open({ url: url.toString() });
     }
   };
