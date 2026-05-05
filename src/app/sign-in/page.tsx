@@ -45,21 +45,21 @@ export default function SignInPage() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "accessly://auth/callback",
         skipBrowserRedirect: true,
-        flowType: 'implicit',
       },
     });
 
     if (error) {
       console.error(error);
-      alert("Google sign-in failed");
       return;
     }
 
-    // Open system browser explicitly
     if (data?.url) {
-      await Browser.open({ url: data.url });
+      // FORCE correct redirect
+      const url = new URL(data.url);
+      url.searchParams.set("redirect_to", "accessly://auth/callback");
+
+      await Browser.open({ url: url.toString() });
     }
   };
 
