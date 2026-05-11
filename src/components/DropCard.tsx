@@ -99,7 +99,7 @@ export default function DropCard({ drop }: DropCardProps) {
             top: "10px",
             right: "10px",
             fontSize: "22px",
-            color: "red",
+            color: isWatching ? "red" : "white",
             background: "rgba(0,0,0,0.4)",
             border: "none",
             borderRadius: "50%",
@@ -109,7 +109,7 @@ export default function DropCard({ drop }: DropCardProps) {
             zIndex: 10,
           }}
         >
-          ♥
+          {isWatching ? "❤️" : "🤍"}
         </button>
         <Image
           src={
@@ -125,15 +125,7 @@ export default function DropCard({ drop }: DropCardProps) {
           sizes="(max-width: 768px) 100vw, 33vw"
           unoptimized
         />
-        <div className="drop-card__overlay">
-          <span className="drop-card__edition">{drop.edition}</span>
-          <span
-            className={`drop-card__timer ${isUrgent ? "drop-card__timer--urgent" : ""}`}
-            style={{ color: isUrgent ? "var(--color-danger, #e53e3e)" : "inherit" }}
-          >
-            Ends in {fmt(endsInSeconds)}
-          </span>
-        </div>
+        <div className="drop-card__overlay"></div>
       </div>
 
       <div className="drop-card__body">

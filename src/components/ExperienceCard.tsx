@@ -92,7 +92,7 @@ export default function ExperienceCard({ experience: exp }: ExperienceCardProps)
             top: "10px",
             right: "10px",
             fontSize: "22px",
-            color: "red",
+            color: isWatching ? "red" : "white",
             background: "rgba(0,0,0,0.4)",
             border: "none",
             borderRadius: "50%",
@@ -102,7 +102,7 @@ export default function ExperienceCard({ experience: exp }: ExperienceCardProps)
             zIndex: 10,
           }}
         >
-          ♥
+          {isWatching ? "❤️" : "🤍"}
         </button>
         <Image
           src={
@@ -120,9 +120,6 @@ export default function ExperienceCard({ experience: exp }: ExperienceCardProps)
         />
         <div className="experience-card__badges">
           <span className="experience-card__location-badge">📍 {exp.location}</span>
-          {exp.spotsLeft <= 3 && (
-            <span className="experience-card__urgency-badge">Only {exp.spotsLeft} left!</span>
-          )}
         </div>
       </div>
 
@@ -183,9 +180,6 @@ export default function ExperienceCard({ experience: exp }: ExperienceCardProps)
               aria-valuemax={100}
             />
           </div>
-          <span className="experience-card__capacity-label">
-            {exp.spotsLeft} of {exp.capacity} spots left
-          </span>
         </div>
 
         <div className="experience-card__pricing">

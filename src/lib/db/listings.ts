@@ -371,6 +371,7 @@ export async function createListing(payload: ListingPayload) {
     try {
       console.log("INSIDE EXPERIENCE BLOCK");
       console.log("INSTAGRAM BEFORE INSERT:", payload.instagramLink);
+      console.log("FINAL PAYLOAD:", payload);
       const startDateTime =
         payload.startDateTime ||
         (payload.startDate && payload.startTime

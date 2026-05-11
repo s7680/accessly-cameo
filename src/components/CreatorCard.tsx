@@ -93,7 +93,7 @@ export default function CreatorCard({ creator, variant = "default" }: CreatorCar
           font-size: 14px;
           transition: transform 0.18s, background 0.18s;
           z-index: 2;
-          color: #fff;
+          color: ${wishlisted ? "#ff4d6d" : "#ffffff"};
         }
         .cc-heart:hover { background: rgba(0,0,0,0.75); transform: scale(1.15); }
         .cc-heart--active { color: #ff4d6d; }
@@ -233,7 +233,7 @@ export default function CreatorCard({ creator, variant = "default" }: CreatorCar
             }}
             aria-label="Toggle wishlist"
           >
-            {wishlisted ? "♥" : "♡"}
+            {wishlisted ? "❤️" : "🤍"}
           </button>
 
           <button

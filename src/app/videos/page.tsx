@@ -10,9 +10,6 @@ const ALL_LABEL = "All";
 
 export default function VideosPage() {
   const [active, setActive] = useState(ALL_LABEL);
-  const [show24hr, setShow24hr] = useState(false);
-  const [filtersVisible, setFiltersVisible] = useState(true);
-  const [sidebarSearch, setSidebarSearch] = useState("");
 
   const [creators, setCreators] = useState<any[]>([]);
 
@@ -49,8 +46,7 @@ export default function VideosPage() {
 
   const filtered = creators.filter((c) => {
     const matchCat = active === ALL_LABEL || c.category === active;
-    const match24hr = !show24hr || (c.deliveryHours ?? Infinity) <= 24;
-    return matchCat && match24hr;
+    return matchCat;
   });
 
   return (
@@ -109,32 +105,8 @@ export default function VideosPage() {
             <span className="vp-result-count">
               {filtered.length.toLocaleString()} results
             </span>
-            <select className="vp-dropdown" defaultValue="featured">
-              <option value="featured">Featured</option>
-              <option value="popular">Popular</option>
-              <option value="price_low">Price: Low to High</option>
-              <option value="price_high">Price: High to Low</option>
-            </select>
-            <button
-              className="vp-filter-btn"
-              onClick={() => setFiltersVisible((v) => !v)}
-            >
-              <span className="vp-filter-icon">⚙</span>
-              {filtersVisible ? "Hide Filters" : "Show Filters"}
-            </button>
-            <button
-              className={`vp-delivery-btn ${show24hr ? "vp-delivery-btn--active" : ""}`}
-              onClick={() => setShow24hr((v) => !v)}
-            >
-            </button>
           </div>
           <div className="vp-control-bar__right">
-            <button
-              className="vp-clear-btn"
-              onClick={() => { setActive(ALL_LABEL); setShow24hr(false); }}
-            >
-              Clear all
-            </button>
           </div>
         </div>
 
@@ -154,82 +126,6 @@ export default function VideosPage() {
               ))}
             </div>
           </div>
-
-          {/* Sidebar */}
-          {filtersVisible && (
-            <aside className="vp-sidebar">
-              <div className="vp-sidebar-header">
-                <h3 className="vp-sidebar-title">
-                  Filters
-                  {(active !== ALL_LABEL || show24hr) && (
-                    <span className="vp-filter-badge">
-                      {(active !== ALL_LABEL ? 1 : 0) + (show24hr ? 1 : 0)}
-                    </span>
-                  )}
-                </h3>
-                <button
-                  className="vp-clear-btn"
-                  onClick={() => { setActive(ALL_LABEL); setShow24hr(false); }}
-                >
-                  Clear all
-                </button>
-              </div>
-
-              <div className="vp-sidebar-section">
-                <div className="vp-sidebar-section-header">
-                  <span className="vp-sidebar-section-title">Category</span>
-                  <span className="vp-sidebar-section-value">
-                    {active !== ALL_LABEL ? active : ""}
-                  </span>
-                  <span className="vp-sidebar-chevron">∧</span>
-                </div>
-                {active !== ALL_LABEL && (
-                  <p className="vp-sidebar-active-cat">{active}</p>
-                )}
-                <button
-                  className="vp-see-all-btn"
-                  onClick={() => setActive(ALL_LABEL)}
-                >
-                  See all categories
-                </button>
-              </div>
-
-              <div className="vp-sidebar-search-wrap">
-                <span className="vp-search-icon">🔍</span>
-                <input
-                  type="text"
-                  className="vp-sidebar-search"
-                  placeholder="Search"
-                  value={sidebarSearch}
-                  onChange={(e) => setSidebarSearch(e.target.value)}
-                />
-              </div>
-
-              <ul className="vp-sidebar-list">
-                {categories
-                  .filter((cat) => cat !== ALL_LABEL)
-                  .filter((cat) =>
-                    cat.toLowerCase().includes(sidebarSearch.toLowerCase())
-                  )
-                  .map((cat) => (
-                    <li key={cat} className="vp-sidebar-list-item">
-                      <label className="vp-sidebar-check-label">
-                        <span className="vp-sidebar-cat-name">{cat}</span>
-                        <span className="vp-sidebar-cat-count">
-                          ({categoryCounts[cat]?.toLocaleString()})
-                        </span>
-                      </label>
-                      <input
-                        type="checkbox"
-                        className="vp-sidebar-checkbox"
-                        checked={active === cat}
-                        onChange={() => setActive(active === cat ? ALL_LABEL : cat)}
-                      />
-                    </li>
-                  ))}
-              </ul>
-            </aside>
-          )}
         </div>
 
       </div>

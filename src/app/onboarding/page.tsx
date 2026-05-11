@@ -8,7 +8,7 @@ import { createListing } from "@/lib/db/listings";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type OfferType = "video" | "drops" | "experiences";
-type PricingMode = "bid" | "buyNow" | "both";
+type PricingMode = "bid" | "fixed" | "hybrid";
 
 interface MediaItem {
   id: string;
@@ -31,9 +31,9 @@ interface FormState {
   media: MediaItem[];
   displayImage: File | null;
   displayName: string;
-  story: string;
+ aboutExperience: string;
   pricingMode: PricingMode;
-  itemName: string;
+ experience_title: string;
   startingBid: string;
   startDate: string;
   startTime: string;
@@ -48,7 +48,6 @@ interface FormState {
   guests: string;
 
   // Duration-based scheduling for experiences
-  experienceDurationType: "short" | "long";
   experienceHours: string;
   experienceMinutes: string;
   experienceDate: string;
@@ -129,9 +128,10 @@ export default function OnboardingPage() {
     selectedType: null,
     category: "",
     price: "", deliveryTime: "", instructions: "",
-    media: [], displayImage: null, displayName: "", story: "", pricingMode: "bid",
+    media: [], displayImage: null, displayName: "", aboutExperience: "", pricingMode: "bid",
     itemName: "", startingBid: "", startDate: "", startTime: "",
     endDate: "", endTime: "", fixedPrice: "",
+    experience_title: "",
 
     duration: "",
     fanBenefits: "",
@@ -176,6 +176,8 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // ── separate ref for drops/experiences media ──
+  const mediaFileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const set = (key: keyof FormState, value: unknown) =>
@@ -199,9 +201,11 @@ export default function OnboardingPage() {
         if (!form.maxDuration) e.maxDuration = "Set max video duration";
       }
       if (form.selectedType !== "video") {
-        if (form.story.trim().length < 10)    e.story = "Add a story (min 10 characters)";
-        if (form.pricingMode !== "buyNow") {
-          if (!form.itemName.trim())           e.itemName    = "Item name required";
+        if (form.aboutExperience.trim().length < 10)    e.aboutExperience = "Add about experience (min 10 characters)";
+      if (form.pricingMode !== "fixed"){
+if (!form.experience_title.trim()) {
+  e.experience_title = "Experience title required";
+}        e.itemName    = "Expeirence title required";
           if (!form.startingBid)               e.startingBid = "Starting bid required";
           if (!form.startDate)                 e.startDate   = "Start date required";
           if (!form.startTime)                 e.startTime   = "Start time required";
@@ -209,7 +213,9 @@ export default function OnboardingPage() {
           if (!form.endTime)                   e.endTime     = "End time required";
         }
         if (form.pricingMode !== "bid") {
-          if (!form.itemName.trim())           e.itemName   = "Item name required";
+   if (!form.experience_title.trim()) {
+  e.experience_title = "Experience title required";
+}         e.itemName   = "Expeirence title required";
           if (!form.fixedPrice)                e.fixedPrice = "Fixed price required";
         }
       if (form.selectedType === "experiences") {
@@ -231,9 +237,6 @@ export default function OnboardingPage() {
         if (form.selectedType === "drops") {
           if (!form.condition) e.condition = "Select condition";
           if (!form.authenticity.trim()) e.authenticity = "Add authenticity details";
-        }
-        if (!form.promoInstagramLink.trim()) {
-          e.promoInstagramLink = "Add Instagram promotion link";
         }
       }
     }
@@ -282,61 +285,113 @@ export default function OnboardingPage() {
       // Normalize FAQ handling
       const dropFaqParts = form.dropFaq ? form.dropFaq.split("||") : [];
       const expFaqParts = form.experienceFaq ? form.experienceFaq.split("||") : [];
-      await createListing({
-        type: form.selectedType === "drops" ? "drop" : form.selectedType === "experiences" ? "experience" : form.selectedType,
-        category: form.category,
+      // Experience duration calculation and location parsing
+      const durationMinutes =
+        Number(form.experienceHours || 0) * 60 +
+        Number(form.experienceMinutes || 0);
 
-        displayName: form.displayName,
-        displayImage: form.displayImage,
-        media: form.media.map((m) => m.file),
+      // Robust IST → UTC conversion (timezone-safe)
+      const toUTCFromIST = (date: string, time: string) => {
+        if (!date || !time) return undefined;
 
-        story: form.story,
-        instagramLink: form.promoInstagramLink,
+        // Construct IST time explicitly (UTC+5:30)
+        const isoString = `${date}T${time}:00+05:30`;
+        const istDate = new Date(isoString);
 
-        pricingMode:
-          form.pricingMode === "bid" ? "auction" :
-          form.pricingMode === "buyNow" ? "fixed" :
-          "auction",
-        startDateTime: form.startDate && form.startTime ? `${form.startDate} ${form.startTime}` : undefined,
-        endDateTime: form.endDate && form.endTime ? `${form.endDate} ${form.endTime}` : undefined,
+        return istDate.toISOString(); // always stored in UTC
+      };
 
+      const startDateTimeISO = toUTCFromIST(form.startDate, form.startTime);
+      const endDateTimeISO = toUTCFromIST(form.endDate, form.endTime);
+      const experienceStartISO = toUTCFromIST(form.experienceDate, form.experienceStartTime);
 
+      const locationParts = form.location ? form.location.split("||") : ["", "", ""];
+      if (form.selectedType === "experiences") {
+        await createListing({
+          type: "experience",
+          category: form.category,
 
-        startingBid: form.startingBid ? Number(form.startingBid) : undefined,
-        fixedPrice: form.fixedPrice ? Number(form.fixedPrice) : undefined,
+          displayName: form.displayName,
+          displayImage: form.displayImage,
+          media: form.media.map((m) => m.file),
 
-        itemName: form.itemName,
-        condition: form.condition,
-        authenticity: form.authenticity,
-        shippingDetails: form.shippingDetails,
-        productDetails: form.specifications,
+          pricingMode: form.pricingMode,
+          startDateTime: startDateTimeISO,
+          endDateTime: endDateTimeISO,
 
-        faq: form.selectedType === "drops"
-          ? {
-              authenticity: dropFaqParts[0] || "",
-              shipping: dropFaqParts[1] || "",
-              returns: dropFaqParts[2] || "",
-              extra: dropFaqParts[3] || "",
-            }
-          : {
-              cancel: expFaqParts[0] || "",
-              reschedule: expFaqParts[1] || "",
-              refund: expFaqParts[2] || "",
-            },
+          startingBid:
+            (form.pricingMode === "bid" || form.pricingMode === "hybrid") && form.startingBid
+              ? Number(form.startingBid)
+              : undefined,
 
-        aboutExperience: form.story,
-        fanBenefits: form.fanBenefits,
-        durationType: form.experienceDurationType,
-        experienceDate: form.experienceDate,
-        startTime: form.experienceStartTime || form.startTime,
-        startDate: form.experienceStartDate || form.startDate,
-        endDate: form.experienceEndDate || form.endDate,
-        guests: form.guests ? Number(form.guests) : undefined,
-        location: form.location,
-        photosIncluded: form.photosIncluded,
-        autographIncluded: form.autographIncluded,
-        cuisine: form.cuisine,
-      });
+          fixedPrice:
+            (form.pricingMode === "fixed" || form.pricingMode === "hybrid") && form.fixedPrice
+              ? Number(form.fixedPrice)
+              : undefined,
+
+         experience_title: form.experience_title,
+
+       aboutExperience: form.aboutExperience,
+          fanBenefits: form.fanBenefits,
+
+          experience_duration: durationMinutes,
+          city: locationParts[0] || "",
+          venue: locationParts[1] || "",
+          google_map_link: locationParts[2] || "",
+
+          start_datetime: experienceStartISO,
+          guests: form.guests ? Number(form.guests) : undefined,
+
+          photosIncluded: form.photosIncluded,
+          autographIncluded: form.autographIncluded,
+          cuisine: form.cuisine,
+
+          faq: {
+            cancel: expFaqParts[0] || "",
+            reschedule: expFaqParts[1] || "",
+            refund: expFaqParts[2] || "",
+          }
+        });
+      }
+
+      if (form.selectedType === "drops") {
+        await createListing({
+          type: "drop",
+          category: form.category,
+
+          displayName: form.displayName,
+          displayImage: form.displayImage,
+          media: form.media.map((m) => m.file),
+
+          pricingMode: form.pricingMode,
+          startDateTime: startDateTimeISO,
+          endDateTime: endDateTimeISO,
+
+          startingBid:
+            (form.pricingMode === "bid" || form.pricingMode === "hybrid") && form.startingBid
+              ? Number(form.startingBid)
+              : undefined,
+
+          fixedPrice:
+            (form.pricingMode === "fixed" || form.pricingMode === "hybrid") && form.fixedPrice
+              ? Number(form.fixedPrice)
+              : undefined,
+
+          experience_title: form.experience_title,
+
+          condition: form.condition,
+          authenticity: form.authenticity,
+          shippingDetails: form.shippingDetails,
+          productDetails: form.specifications,
+
+          faq: {
+            authenticity: dropFaqParts[0] || "",
+            shipping: dropFaqParts[1] || "",
+            returns: dropFaqParts[2] || "",
+            extra: dropFaqParts[3] || "",
+          }
+        });
+      }
     }
 
     setLoading(false);
@@ -354,6 +409,7 @@ export default function OnboardingPage() {
     setStep((s) => Math.max(1, s - 1));
   }
 
+  // ── Video-only file handler (unchanged) ────────────────────────────────────
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
 
@@ -383,6 +439,48 @@ export default function OnboardingPage() {
 
     if (newItems.length > 0) setUploadError(null);
     set("media", [...form.media, ...newItems]);
+  }
+
+  // ── Drops/Experiences media handler (images + videos) ─────────────────────
+  function handleMediaFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    const existingVideos = form.media.filter((m) => m.type === "video").length;
+    const existingImages = form.media.filter((m) => m.type === "image").length;
+
+    const newItems: MediaItem[] = [];
+    let err: string | null = null;
+
+    files.forEach((f) => {
+      const isVideo = f.type.startsWith("video");
+      const isImage = f.type.startsWith("image");
+
+      if (!isVideo && !isImage) return;
+
+      if (isVideo) {
+        const totalVideos = existingVideos + newItems.filter((i) => i.type === "video").length;
+        if (totalVideos >= 5) { err = "Max 5 videos allowed"; return; }
+      }
+
+      if (isImage) {
+        const totalImages = existingImages + newItems.filter((i) => i.type === "image").length;
+        if (totalImages >= 10) { err = "Max 10 images allowed"; return; }
+      }
+
+      newItems.push({
+        id: Math.random().toString(36).slice(2),
+        url: URL.createObjectURL(f),
+        name: f.name,
+        file: f,
+        type: isVideo ? "video" : "image",
+      });
+    });
+
+    if (err) setUploadError(err);
+    else if (newItems.length > 0) setUploadError(null);
+
+    if (newItems.length > 0) set("media", [...form.media, ...newItems]);
+    // reset so same file can be re-selected
+    e.target.value = "";
   }
 
   function removeMedia(id: string) {
@@ -429,9 +527,10 @@ export default function OnboardingPage() {
             displayImage: null,
             displayName: "",
             bio: "",
-            story: "",
+          
             pricingMode: "bid",
             itemName: "",
+            experience_title: "",
             startingBid: "",
             startDate: "",
             startTime: "",
@@ -739,7 +838,7 @@ export default function OnboardingPage() {
                   <input
                     ref={fileRef}
                     type="file"
-                    accept="image/*,video/*"
+                    accept="video/*"
                     multiple
                     style={{ display: "none" }}
                     onChange={handleFileChange}
@@ -778,10 +877,10 @@ export default function OnboardingPage() {
             {(form.selectedType === "drops" || form.selectedType === "experiences") && (
               <>
                 <div className="ob-field">
-                  <label className="ob-label">Display name</label>
+                  <label className="ob-label">Display name (name that will appear in experience card)</label>
                   <input
                     className="ob-input"
-                    placeholder="Enter title for your card"
+                    placeholder="Enter your name"
                     value={form.displayName}
                     onChange={(e) => set("displayName", e.target.value)}
                   />
@@ -809,40 +908,103 @@ export default function OnboardingPage() {
                     </div>
                   )}
                 </div>
-                {/* Media upload */}
+
+                {/* Item name (always shown) - moved here, label changed */}
                 <div className="ob-field">
-                  <label className="ob-label">
-                    Upload photos & videos
-                  </label>
+                  <label className="ob-label">Experience title</label>
+                  <input
+errors.experience_title
+                    type="text"
+                    placeholder="e.g. Private Dinner in Mumbai"
+                  value={form.selectedType === "experiences" ? form.experience_title : form.itemName}
+onChange={(e) => {
+  if (form.selectedType === "experiences") {
+    set("experience_title", e.target.value);
+    clearError("experience_title");
+  } else {
+    set("experience_title", e.target.value);
+    clearError("experience_title");
+  }
+}}
+                  />
+           <FieldError msg={errors.experience_title} />
+                </div>
+
+                {/* About Experience - move to just after Display name for experiences */}
+                {form.selectedType === "experiences" && (
+                  <div className="ob-sub-section">
+                    <p className="ob-sub-section-label">About Experience</p>
+
+                    <div className="ob-field">
+                      <label className="ob-label">About this experience</label>
+                      <textarea
+                        className="ob-textarea"
+                        placeholder="Describe the experience"
+                       value={form.aboutExperience}
+onChange={(e)=>{ set("aboutExperience", e.target.value); clearError("aboutExperience"); }}
+                      />
+                    </div>
+
+                    <div className="ob-field">
+                      <label className="ob-label">What fans will get</label>
+                      <textarea
+                        className={`ob-textarea ${errors.fanBenefits ? "ob-input--error" : ""}`}
+                        placeholder="Dinner, photos, interaction..."
+                        value={form.fanBenefits}
+                        onChange={(e)=>{ set("fanBenefits", e.target.value); clearError("fanBenefits"); }}
+                      />
+                      <FieldError msg={errors.fanBenefits} />
+                    </div>
+                  </div>
+                )}
+
+
+                {/* ── Media upload for DROPS / EXPERIENCES (images + videos) ── */}
+                <div className="ob-field">
+                  <label className="ob-label">Upload photos &amp; videos (media related to experience)</label>
                   <button
                     className="ob-upload-zone"
-                    onClick={() => fileRef.current?.click()}
+                    type="button"
+                    onClick={() => mediaFileRef.current?.click()}
                   >
                     <span className="ob-upload-icon">📎</span>
-                    <span className="ob-upload-text">Tap to add media</span>
-                    <span className="ob-upload-hint">JPG, PNG, MP4 · Max 20 MB each · Max 5 videos</span>
+                    <span className="ob-upload-text">Tap to add photos or videos</span>
+                    <span className="ob-upload-hint">JPG, PNG · Max 10 images &nbsp;|&nbsp; MP4, MOV · Max 5 videos</span>
+                    <span className="ob-upload-hint" style={{ marginTop: 4 }}>
+                      {form.media.filter(m => m.type === "image").length} image{form.media.filter(m => m.type === "image").length !== 1 ? "s" : ""} &nbsp;&amp;&nbsp;
+                      {form.media.filter(m => m.type === "video").length} video{form.media.filter(m => m.type === "video").length !== 1 ? "s" : ""} selected
+                    </span>
                   </button>
+
                   {uploadError && (
                     <p style={{ color: "#e74c3c", fontSize: "12px", marginTop: "6px" }}>
                       {uploadError}
                     </p>
                   )}
+
+                  {/* Hidden input — accepts both image and video */}
                   <input
-                    ref={fileRef}
+                    ref={mediaFileRef}
                     type="file"
-                  accept="image/*,video/*"
+                    accept="image/*,video/*"
                     multiple
                     style={{ display: "none" }}
-                    onChange={handleFileChange}
+                    onChange={handleMediaFileChange}
                   />
+
                   {form.media.length > 0 && (
                     <div className="ob-media-scroll">
                       {form.media.map((m) => (
                         <div key={m.id} className="ob-media-thumb">
-                          {m.type === "image"
-                            ? <img src={m.url} alt={m.name} className="ob-media-img" />
-                            : <video src={m.url} className="ob-media-img" />
-                          }
+                          {m.type === "image" ? (
+                            <img src={m.url} alt={m.name} className="ob-media-img" />
+                          ) : (
+                            <video src={m.url} className="ob-media-img" />
+                          )}
+                          {/* type badge */}
+                          <span className="ob-media-badge">
+                            {m.type === "video" ? "▶" : "🖼"}
+                          </span>
                           <button className="ob-media-remove" onClick={() => removeMedia(m.id)}>✕</button>
                         </div>
                       ))}
@@ -850,48 +1012,21 @@ export default function OnboardingPage() {
                   )}
                 </div>
 
-                {/* Story */}
-                <div className="ob-field">
-                  <label className="ob-label">The story behind it</label>
-                  <textarea
-                    className={`ob-textarea ${errors.story ? "ob-input--error" : ""}`}
-                    placeholder={
-                      form.selectedType === "drops"
-                        ? "e.g. I wore this jersey in the 2023 final..."
-                        : "e.g. Join me for an intimate dinner where we'll talk cricket..."
-                    }
-                    rows={5}
-                    value={form.story}
-                    onChange={(e) => { set("story", e.target.value); clearError("story"); }}
-                  />
-                  <FieldError msg={errors.story} />
-                </div>
 
-                {/* Instagram promotion link */}
-                <div className="ob-field">
-                  <label className="ob-label">Instagram post link (for trust of fans so as to avoid fraud)</label>
-                  <input
-                    className={`ob-input ${errors.promoInstagramLink ? "ob-input--error" : ""}`}
-                    type="url"
-                    placeholder="https://instagram.com/..."
-                    value={form.promoInstagramLink}
-                    onChange={(e) => { set("promoInstagramLink", e.target.value); clearError("promoInstagramLink"); }}
-                  />
-                  <FieldError msg={errors.promoInstagramLink} />
-                </div>
+            
 
                 {/* Pricing mode */}
                 <div className="ob-field">
                   <label className="ob-label">Pricing type</label>
                   <div className="ob-seg-group">
-                    {(["bid", "buyNow", "both"] as PricingMode[]).map((m) => (
+                    {(["bid", "fixed", "hybrid"] as PricingMode[]).map((m) => (
                       <button
                         type="button"
                         key={m}
                         className={`ob-seg-btn ${form.pricingMode === m ? "ob-seg-btn--active" : ""}`}
                         onClick={() => { set("pricingMode", m); clearError("fixedPrice"); }}
                       >
-                        {m === "bid" ? "Bid" : m === "buyNow" ? "Buy Now" : "Both"}
+                       {m === "bid" ? "Bid" : m === "fixed" ? "Buy Now" : "Both"}
                       </button>
                     ))}
                   </div>
@@ -899,7 +1034,7 @@ export default function OnboardingPage() {
 
 
                 {/* BID fields */}
-                {(form.pricingMode === "bid" || form.pricingMode === "both") && (
+                {(form.pricingMode === "bid" || form.pricingMode === "hybrid") && (
                   <div className="ob-sub-section">
                     <p className="ob-sub-section-label">Auction settings</p>
 
@@ -968,7 +1103,7 @@ export default function OnboardingPage() {
                 )}
 
                 {/* BUY NOW fields */}
-                {(form.pricingMode === "buyNow" || form.pricingMode === "both") && (
+                {(form.pricingMode === "fixed" || form.pricingMode === "hybrid") && (
                   <div className="ob-sub-section">
                     <p className="ob-sub-section-label">Buy Now price</p>
                     <div className="ob-field">
@@ -988,19 +1123,6 @@ export default function OnboardingPage() {
                     </div>
                   </div>
                 )}
-                {/* Drops extras */}
-                {/* Item name (always shown) */}
-                <div className="ob-field">
-                  <label className="ob-label">Item name</label>
-                  <input
-                    className={`ob-input ${errors.itemName ? "ob-input--error" : ""}`}
-                    type="text"
-                    placeholder="e.g. Private Dinner in Mumbai"
-                    value={form.itemName}
-                    onChange={(e) => { set("itemName", e.target.value); clearError("itemName"); }}
-                  />
-                  <FieldError msg={errors.itemName} />
-                </div>
                 {form.selectedType === "drops" && (
                   <div className="ob-sub-section">
                     <p className="ob-sub-section-label">Item details</p>
@@ -1134,65 +1256,30 @@ export default function OnboardingPage() {
 
                 {form.selectedType === "experiences" && (
                   <>
-                    {/* Item name (always shown) */}
-                    <div className="ob-field">
-                      <label className="ob-label">Item name</label>
-                      <input
-                        className={`ob-input ${errors.itemName ? "ob-input--error" : ""}`}
-                        type="text"
-                        placeholder="e.g. Private Dinner in Mumbai"
-                        value={form.itemName}
-                        onChange={(e) => { set("itemName", e.target.value); clearError("itemName"); }}
-                      />
-                      <FieldError msg={errors.itemName} />
-                    </div>
-                    {/* About */}
-                    <div className="ob-sub-section">
-                      <p className="ob-sub-section-label">About Experience</p>
-
-                      <div className="ob-field">
-                        <label className="ob-label">About this experience</label>
-                        <textarea
-                          className="ob-textarea"
-                          placeholder="Describe the experience"
-                          value={form.story}
-                          onChange={(e)=>{ set("story", e.target.value); clearError("story"); }}
-                        />
-                      </div>
-
-                      <div className="ob-field">
-                        <label className="ob-label">What fans will get</label>
-                        <textarea
-                          className={`ob-textarea ${errors.fanBenefits ? "ob-input--error" : ""}`}
-                          placeholder="Dinner, photos, interaction..."
-                          value={form.fanBenefits}
-                          onChange={(e)=>{ set("fanBenefits", e.target.value); clearError("fanBenefits"); }}
-                        />
-                        <FieldError msg={errors.fanBenefits} />
-                      </div>
-                    </div>
-
                     {/* Logistics */}
                     <div className="ob-sub-section">
                       <p className="ob-sub-section-label">Logistics</p>
 
-                    <div className="ob-field">
-                      <label className="ob-label">Experience duration</label>
-                      <select
-                        className="ob-input"
-                        value={form.experienceDurationType}
-                        onChange={(e)=>set("experienceDurationType", e.target.value)}
-                      >
-                        <option value="short">Less than 1 day</option>
-                        <option value="long">More than 1 day</option>
-                      </select>
-                    </div>
+                    <div className="ob-sub-section">
+                      <p className="ob-sub-section-label">Schedule</p>
 
-                    {/* Short duration */}
-                    {form.experienceDurationType === "short" && (
-                      <div className="ob-sub-section">
-                        <p className="ob-sub-section-label">Schedule</p>
+                      <div className="ob-row-2">
+                        <input
+                          type="date"
+                          className={`ob-input ${errors.experienceDate ? "ob-input--error" : ""}`}
+                          value={form.experienceDate}
+                          onChange={(e)=>{ set("experienceDate", e.target.value); clearError("experienceDate"); }}
+                        />
+                        <input
+                          type="time"
+                          className={`ob-input ${errors.experienceStartTime ? "ob-input--error" : ""}`}
+                          value={form.experienceStartTime}
+                          onChange={(e)=>{ set("experienceStartTime", e.target.value); clearError("experienceStartTime"); }}
+                        />
+                      </div>
 
+                      <div className="ob-field" style={{ marginTop: "12px" }}>
+                        <label className="ob-label">Approx duration</label>
                         <div className="ob-row-2">
                           <input
                             className="ob-input"
@@ -1207,71 +1294,63 @@ export default function OnboardingPage() {
                             onChange={(e)=>set("experienceMinutes", e.target.value)}
                           />
                         </div>
-
-                        <div className="ob-row-2">
-                          <input
-                            type="date"
-                            className={`ob-input ${errors.experienceDate ? "ob-input--error" : ""}`}
-                            value={form.experienceDate}
-                            onChange={(e)=>{ set("experienceDate", e.target.value); clearError("experienceDate"); }}
-                          />
-                          <input
-                            type="time"
-                            className={`ob-input ${errors.experienceStartTime ? "ob-input--error" : ""}`}
-                            value={form.experienceStartTime}
-                            onChange={(e)=>{ set("experienceStartTime", e.target.value); clearError("experienceStartTime"); }}
-                          />
-                        </div>
                         <FieldError msg={errors.duration} />
                       </div>
-                    )}
-
-                    {/* Long duration */}
-                    {form.experienceDurationType === "long" && (
-                      <div className="ob-sub-section">
-                        <p className="ob-sub-section-label">Schedule</p>
-
-                        <div className="ob-row-2">
-                          <input
-                            type="date"
-                            className={`ob-input ${errors.experienceStartDate ? "ob-input--error" : ""}`}
-                            value={form.experienceStartDate}
-                            onChange={(e)=>{ set("experienceStartDate", e.target.value); clearError("experienceStartDate"); }}
-                          />
-                          <input
-                            type="time"
-                            className={`ob-input ${errors.experienceStartTime ? "ob-input--error" : ""}`}
-                            value={form.experienceStartTime}
-                            onChange={(e)=>{ set("experienceStartTime", e.target.value); clearError("experienceStartTime"); }}
-                          />
-                        </div>
-
-                        <div className="ob-row-2">
-                          <input
-                            type="date"
-                            className={`ob-input ${errors.experienceEndDate ? "ob-input--error" : ""}`}
-                            value={form.experienceEndDate}
-                            onChange={(e)=>{ set("experienceEndDate", e.target.value); clearError("experienceEndDate"); }}
-                          />
-                          <input
-                            type="time"
-                            className={`ob-input ${errors.experienceEndTime ? "ob-input--error" : ""}`}
-                            value={form.experienceEndTime}
-                            onChange={(e)=>{ set("experienceEndTime", e.target.value); clearError("experienceEndTime"); }}
-                          />
-                        </div>
-                      </div>
-                    )}
+                    </div>
 
                       <div className="ob-field">
-                        <label className="ob-label">Number of guests</label>
+                      <label className="ob-label">Number of guests (allowed)</label>
                         <input className={`ob-input ${errors.guests ? "ob-input--error" : ""}`} value={form.guests} onChange={(e)=>{ set("guests", e.target.value); clearError("guests"); }} />
                         <FieldError msg={errors.guests} />
                       </div>
 
                       <div className="ob-field">
                         <label className="ob-label">Location</label>
-                        <input className={`ob-input ${errors.location ? "ob-input--error" : ""}`} value={form.location} onChange={(e)=>{ set("location", e.target.value); clearError("location"); }} />
+
+                        {(() => {
+                          const parts = form.location ? form.location.split("||") : ["", "", ""];
+
+                          return (
+                            <>
+                              <input
+                                className={`ob-input ${errors.location ? "ob-input--error" : ""}`}
+                                placeholder="City"
+                                value={parts[0] || ""}
+                                onChange={(e)=>{
+                                  const updated = [...parts];
+                                  updated[0] = e.target.value;
+                                  set("location", updated.join("||"));
+                                  clearError("location");
+                                }}
+                              />
+
+                              <input
+                                className="ob-input"
+                                style={{ marginTop: "10px" }}
+                                placeholder="Venue (only reputed venues allowed)"
+                                value={parts[1] || ""}
+                                onChange={(e)=>{
+                                  const updated = [...parts];
+                                  updated[1] = e.target.value;
+                                  set("location", updated.join("||"));
+                                }}
+                              />
+
+                              <input
+                                className="ob-input"
+                                style={{ marginTop: "10px" }}
+                                placeholder="Google Maps link"
+                                value={parts[2] || ""}
+                                onChange={(e)=>{
+                                  const updated = [...parts];
+                                  updated[2] = e.target.value;
+                                  set("location", updated.join("||"));
+                                }}
+                              />
+                            </>
+                          );
+                        })()}
+
                         <FieldError msg={errors.location} />
                       </div>
                     </div>
@@ -1299,7 +1378,7 @@ export default function OnboardingPage() {
 
                     {/* Cancellation / Rescheduling FAQ */}
                     <div className="ob-sub-section">
-                      <p className="ob-sub-section-label">Cancellation & Rescheduling</p>
+                      <p className="ob-sub-section-label">Cancellation &amp; Rescheduling</p>
 
                       <div className="ob-field">
                         <label className="ob-label">Can fans cancel?</label>
@@ -1374,7 +1453,7 @@ const styles = `
   /* Root */
   .ob-root {
     background: #0a0a0a;
-    color: #f0ede8;
+    color: #ffffff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -1409,7 +1488,7 @@ const styles = `
   .ob-back-btn:hover { color: #f0ede8; }
   .ob-step-label {
     font-size: 12px;
-    color: #6b6560;
+    color: #ffffff;
     font-weight: 500;
     letter-spacing: 0.04em;
     text-align: center;
@@ -1459,7 +1538,7 @@ const styles = `
     to   { opacity: 1; transform: translateY(0); }
   }
   .ob-step-title {
-    font-size: clamp(22px, 6vw, 30px);
+    font-size: clamp(34px, 6vw, 30px);
     font-weight: 800;
     letter-spacing: -0.025em;
     line-height: 1.15;
@@ -1467,8 +1546,8 @@ const styles = `
     color: #f0ede8;
   }
   .ob-step-sub {
-    font-size: 14px;
-    color: #6b6560;
+    font-size: 24px;
+    color: #ffffff;
     margin: 0 0 28px;
     line-height: 1.5;
   }
@@ -1517,7 +1596,7 @@ const styles = `
   }
   .ob-offer-sub {
     font-size: 13px;
-    color: #6b6560;
+    color: #ffffff;
     line-height: 1.4;
   }
   .ob-offer-check {
@@ -1538,9 +1617,9 @@ const styles = `
   }
   .ob-label {
     display: block;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
-    color: #9a9085;
+    color: #ffffff;
     margin-bottom: 8px;
     letter-spacing: 0.03em;
     text-transform: none;
@@ -1561,7 +1640,7 @@ const styles = `
     border: 1.5px solid #222;
     border-radius: 12px;
     color: #f0ede8;
-    font-size: 16px; /* 16px prevents iOS zoom */
+    font-size: 18px; /* 16px prevents iOS zoom */
     padding: 14px 16px;
     outline: none;
     transition: border-color 0.15s ease;
@@ -1666,7 +1745,7 @@ const styles = `
     border: 1.5px solid #222;
     border-radius: 12px;
     color: #f0ede8;
-    font-size: 16px;
+    font-size: 18px;
     padding: 14px 16px;
     outline: none;
     resize: vertical;
@@ -1694,8 +1773,8 @@ const styles = `
     background: #141414;
     border: 1.5px solid #222;
     border-radius: 100px;
-    color: #9a9085;
-    font-size: 13px;
+    color: #ffffff;
+    font-size: 15px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -1766,6 +1845,16 @@ const styles = `
     font-size: 11px;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
+  }
+  .ob-media-badge {
+    position: absolute;
+    bottom: 4px; left: 4px;
+    font-size: 10px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 4px;
+    padding: 1px 4px;
+    color: #fff;
+    pointer-events: none;
   }
 
   /* Segmented control */
@@ -1853,7 +1942,7 @@ const styles = `
     padding: 17px 24px;
     background: #d4a843;
     color: #0a0a0a;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 800;
     border: none;
     border-radius: 100px;
@@ -1906,7 +1995,7 @@ const styles = `
   }
   .ob-success-sub {
     font-size: 15px;
-    color: #6b6560;
+    color: #ffffff;
     line-height: 1.6;
     margin: 0 0 32px;
   }
@@ -1918,7 +2007,7 @@ const styles = `
     border-bottom: 1px solid #1a1a1a;
     margin-bottom: 0;
   }
-  .ob-success-label { font-size: 13px; color: #4a4540; }
+  .ob-success-label { font-size: 13px; color: #ffffff; }
   .ob-success-value { font-size: 13px; font-weight: 600; color: #f0ede8; }
   .ob-success-inner .ob-btn-primary {
     margin-top: 32px;

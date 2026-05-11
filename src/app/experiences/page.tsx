@@ -12,8 +12,6 @@ const categories = [ALL_LABEL, "Meet & Greet", "Dinner", "Sports Experience", "B
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function ExperiencesPage() {
   const [active, setActive]                 = useState(ALL_LABEL);
-  const [filtersVisible, setFiltersVisible] = useState(true);
-  const [sidebarSearch, setSidebarSearch]   = useState("");
   const [sort, setSort]                     = useState("upcoming");
   const [lotType, setLotType] = useState<"all" | "auction" | "buyNow">("all");
   const [allExperiences, setAllExperiences] = useState<any[]>([]);
@@ -136,17 +134,8 @@ export default function ExperiencesPage() {
               <option value="price_low">Price: Low to High</option>
               <option value="price_high">Price: High to Low</option>
             </select>
-            <button
-              className="vp-filter-btn"
-              onClick={() => setFiltersVisible((v) => !v)}
-            >
-              <span className="vp-filter-icon">⚙</span>
-              {filtersVisible ? "Hide Filters" : "Show Filters"}
-            </button>
           </div>
-          <div className="vp-control-bar__right">
-            <button className="vp-clear-btn" onClick={clearAll}>Clear all</button>
-          </div>
+          <div className="vp-control-bar__right"></div>
         </div>
 
         {/* Main layout */}
@@ -194,69 +183,6 @@ export default function ExperiencesPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
-          {filtersVisible && (
-            <aside className="vp-sidebar">
-              <div className="vp-sidebar-header">
-                <h3 className="vp-sidebar-title">
-                  Filters
-                  {active !== ALL_LABEL && (
-                    <span className="vp-filter-badge">1</span>
-                  )}
-                </h3>
-                <button className="vp-clear-btn" onClick={clearAll}>Clear all</button>
-              </div>
-
-              <div className="vp-sidebar-section">
-                <div className="vp-sidebar-section-header">
-                  <span className="vp-sidebar-section-title">Category</span>
-                  <span className="vp-sidebar-section-value">
-                    {active !== ALL_LABEL ? active : ""}
-                  </span>
-                  <span className="vp-sidebar-chevron">∧</span>
-                </div>
-                {active !== ALL_LABEL && (
-                  <p className="vp-sidebar-active-cat">{active}</p>
-                )}
-                <button className="vp-see-all-btn" onClick={() => setActive(ALL_LABEL)}>
-                  See all categories
-                </button>
-              </div>
-
-              <div className="vp-sidebar-search-wrap">
-                <span className="vp-search-icon">🔍</span>
-                <input
-                  type="text"
-                  className="vp-sidebar-search"
-                  placeholder="Search"
-                  value={sidebarSearch}
-                  onChange={(e) => setSidebarSearch(e.target.value)}
-                />
-              </div>
-
-              <ul className="vp-sidebar-list">
-                {categories
-                  .filter((cat) => cat !== ALL_LABEL)
-                  .filter((cat) => cat.toLowerCase().includes(sidebarSearch.toLowerCase()))
-                  .map((cat) => (
-                    <li key={cat} className="vp-sidebar-list-item">
-                      <label className="vp-sidebar-check-label">
-                        <span className="vp-sidebar-cat-name">{cat}</span>
-                        <span className="vp-sidebar-cat-count">
-                          ({categoryCounts[cat]?.toLocaleString()})
-                        </span>
-                      </label>
-                      <input
-                        type="checkbox"
-                        className="vp-sidebar-checkbox"
-                        checked={active === cat}
-                        onChange={() => setActive(active === cat ? ALL_LABEL : cat)}
-                      />
-                    </li>
-                  ))}
-              </ul>
-            </aside>
-          )}
         </div>
 
       </div>

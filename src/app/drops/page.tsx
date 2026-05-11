@@ -11,9 +11,6 @@ const categories = [ALL_LABEL, "Autographs", "Sports", "Bollywood", "Politics", 
 
 const DropsPage = () => {
   const [active, setActive]                 = useState(ALL_LABEL);
-  const [showUrgent, setShowUrgent]         = useState(false);
-  const [filtersVisible, setFiltersVisible] = useState(true);
-  const [sidebarSearch, setSidebarSearch]   = useState("");
   const [sort, setSort]                     = useState("ending_soon");
   const [lotType, setLotType] = useState<"all" | "auction" | "buyNow">("all");
   const router = useRouter();
@@ -37,7 +34,6 @@ const DropsPage = () => {
 
   const filtered = allDrops.filter((d) => {
     const matchCat    = active === ALL_LABEL || d.category === active;
-    const matchUrgent = !showUrgent || new Date(d.end_datetime).getTime() - Date.now() <= 21600000;
 
     const matchLot =
       lotType === "all" ||
@@ -45,7 +41,7 @@ const DropsPage = () => {
       (lotType === "buyNow" &&
         (d.pricing_mode === "fixed" || d.pricing_mode === "hybrid"));
 
-    return matchCat && matchUrgent && matchLot;
+    return matchCat && matchLot;
   });
 
   const sorted = [...filtered].sort((a, b) => {
@@ -55,7 +51,7 @@ const DropsPage = () => {
     return 0;
   });
 
-  const clearAll = () => { setActive(ALL_LABEL); setShowUrgent(false); };
+  const clearAll = () => { setActive(ALL_LABEL); };
 
   return (
     <div className="vp-root">
@@ -130,32 +126,8 @@ const DropsPage = () => {
             <span className="vp-result-count">
               {sorted.length.toLocaleString()} results
             </span>
-            <select
-              className="vp-dropdown"
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-            >
-              <option value="ending_soon">Ending Soon</option>
-              <option value="highest_bids">Highest Bids</option>
-              <option value="newest">Newest</option>
-            </select>
-            <button
-              className="vp-filter-btn"
-              onClick={() => setFiltersVisible((v) => !v)}
-            >
-              <span className="vp-filter-icon">⚙</span>
-              {filtersVisible ? "Hide Filters" : "Show Filters"}
-            </button>
-            <button
-              className={`vp-delivery-btn ${showUrgent ? "vp-delivery-btn--active" : ""}`}
-              onClick={() => setShowUrgent((v) => !v)}
-            >
-              Ending &lt; 6h
-            </button>
           </div>
-          <div className="vp-control-bar__right">
-            <button className="vp-clear-btn" onClick={clearAll}>Clear all</button>
-          </div>
+          <div className="vp-control-bar__right"></div>
         </div>
 
         {/* Main layout */}
@@ -190,71 +162,6 @@ const DropsPage = () => {
             </div>
           </div>
 
-          {/* Sidebar */}
-          {filtersVisible && (
-            <aside className="vp-sidebar">
-              <div className="vp-sidebar-header">
-                <h3 className="vp-sidebar-title">
-                  Filters
-                  {(active !== ALL_LABEL || showUrgent) && (
-                    <span className="vp-filter-badge">
-                      {(active !== ALL_LABEL ? 1 : 0) + (showUrgent ? 1 : 0)}
-                    </span>
-                  )}
-                </h3>
-                <button className="vp-clear-btn" onClick={clearAll}>Clear all</button>
-              </div>
-
-              <div className="vp-sidebar-section">
-                <div className="vp-sidebar-section-header">
-                  <span className="vp-sidebar-section-title">Category</span>
-                  <span className="vp-sidebar-section-value">
-                    {active !== ALL_LABEL ? active : ""}
-                  </span>
-                  <span className="vp-sidebar-chevron">∧</span>
-                </div>
-                {active !== ALL_LABEL && (
-                  <p className="vp-sidebar-active-cat">{active}</p>
-                )}
-                <button className="vp-see-all-btn" onClick={() => setActive(ALL_LABEL)}>
-                  See all categories
-                </button>
-              </div>
-
-              <div className="vp-sidebar-search-wrap">
-                <span className="vp-search-icon">🔍</span>
-                <input
-                  type="text"
-                  className="vp-sidebar-search"
-                  placeholder="Search"
-                  value={sidebarSearch}
-                  onChange={(e) => setSidebarSearch(e.target.value)}
-                />
-              </div>
-
-              <ul className="vp-sidebar-list">
-                {categories
-                  .filter((cat) => cat !== ALL_LABEL)
-                  .filter((cat) => cat.toLowerCase().includes(sidebarSearch.toLowerCase()))
-                  .map((cat) => (
-                    <li key={cat} className="vp-sidebar-list-item">
-                      <label className="vp-sidebar-check-label">
-                        <span className="vp-sidebar-cat-name">{cat}</span>
-                        <span className="vp-sidebar-cat-count">
-                          ({categoryCounts[cat]?.toLocaleString()})
-                        </span>
-                      </label>
-                      <input
-                        type="checkbox"
-                        className="vp-sidebar-checkbox"
-                        checked={active === cat}
-                        onChange={() => setActive(active === cat ? ALL_LABEL : cat)}
-                      />
-                    </li>
-                  ))}
-              </ul>
-            </aside>
-          )}
         </div>
 
       </div>
